@@ -1,8 +1,8 @@
 class Rebalancer:
-    def __init__(self):
+    def __init__(self, absolute_deviation_limit = 0.05, relative_deviation_limit = 0.25):
         self.account_value = 0
-        self.absolute_deviation_limit = 0.05
-        self.relative_deviation_limit = 0.25
+        self.absolute_deviation_limit = absolute_deviation_limit
+        self.relative_deviation_limit = relative_deviation_limit
         self.absolute_rebalance = False
         self.relative_rebalance = False
 

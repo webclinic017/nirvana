@@ -61,7 +61,7 @@ class Nirvana(bt.Strategy):
         print(self.target)
         self.target_update = self.target.copy()
         self.portfolio = {}
-        self.rb = rebalancer.Rebalancer()
+        self.rb = rebalancer.Rebalancer(absolute_deviation_limit = 0.05, relative_deviation_limit = 0.25)
 
     def notify_order(self, order):
         debug = False
