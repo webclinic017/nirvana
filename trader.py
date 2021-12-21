@@ -139,7 +139,7 @@ def parse_args(pargs=None):
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='VixRay backtest simulator')
 
-    parser.add_argument('--fromdate', required=False, default='2006-10-24',help='Starting date in YYYY-MM-DD format')
+    parser.add_argument('--fromdate', required=False, default='1993-01-29',help='Starting date in YYYY-MM-DD format')
     parser.add_argument('--todate', required=False, default=None, help='Ending date in YYYY-MM-DD format')
     parser.add_argument('-p', '--plot', action='store_true', help='Plot results')
     parser.add_argument('-b', '--buyhold', action='store_true', help='Buy and Hold backtest')
