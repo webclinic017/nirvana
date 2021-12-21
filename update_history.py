@@ -40,6 +40,10 @@ def add_ta(df):
     # classta.trend.MACD(close: pandas.core.series.Series, window_slow: int = 26, window_fast: int = 12, window_sign: int = 9, fillna: bool = False)
     macd_diff = ta.trend.MACD(df['Adj Close']).macd_diff()
     df['MACD_diff'] = macd_diff
+    sma_250 = ta.trend.sma_indicator(df['Adj Close'], window=250, fillna=True)
+    df['SMA_250'] = sma_250
+    sma_225 = ta.trend.sma_indicator(df['Adj Close'], window=225, fillna=True)
+    df['SMA_225'] = sma_225
     sma_200 = ta.trend.sma_indicator(df['Adj Close'], window=200, fillna=True)
     df['SMA_200'] = sma_200
     sma_180 = ta.trend.sma_indicator(df['Adj Close'], window=180, fillna=True)
