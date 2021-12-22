@@ -35,7 +35,7 @@ class Nirvana(bt.Strategy):
         self.order = None
         if not self.p.optimizer:
             self.rows = []
-            self.rows.append("Date,Transaction,Ticker,Shares,Price")
+            self.rows.append("Date,Transaction,Symbol,Shares,Price")
         self.buy_price = {}
         self.first_run = True
         if (self.p.tearsheet):
@@ -169,7 +169,7 @@ class Nirvana(bt.Strategy):
 
                     self.order = self.buy(data=data, size=size)
  
-                    if not self.p.optimizer and self.order:
+                    if not self.p.optimizer:
                         print("{}:  BUY {} {} shares at {}".format(
                             date, "%5s" % data._name,"%9d" % self.order.size, "%7.2f" % data.close[0]))
                         self.rows.append("{},{},{},{},{}".format(date, "BUY", data._name, self.order.size, data.close[0],))
@@ -190,6 +190,10 @@ class Nirvana(bt.Strategy):
             df_performance['Date'] = pd.to_datetime(df_performance['Date'])
             ts = pd.Series(df_performance['Returns'].values, index=df_performance['Date'])
             qs.reports.html(ts, "SPY", title='Tearsheet', output='performance.html')
+
+        if not self.p.optimizer:
+            with open('trades.csv', 'w') as filehandle:
+                filehandle.writelines("%s\n" % row for row in self.rows)
 
 class GuardDog(bt.Strategy):
 
