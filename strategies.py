@@ -138,8 +138,7 @@ class Nirvana(bt.Strategy):
         rebalance_bands = self.rb.rebalance_check(cash, self.portfolio, self.target_update)
         
         if (rebalance_bands or rebalance_ma or self.first_run):
-            print("rebalance_bands: " + str(rebalance_bands) + " rebalance_ma: " + str(rebalance_ma))
-            print("cash = " + str(cash))
+            print("rebalance_bands: " + str(rebalance_bands) + " rebalance_ma: " + str(rebalance_ma) + " (cash = " + str(cash) + ")")
 
             # generate trades to rebalance back to the updated target allocation
             trades = self.rb.rebalance(self.portfolio, self.target_update)
