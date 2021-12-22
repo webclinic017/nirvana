@@ -19,8 +19,7 @@ class Nirvana(bt.Strategy):
         ('c', 0.0),
         ('d', 0.0),
         ('optimizer', False),
-        ('portin', {}),
-        ('portout', {}),
+        ('portfolio', {}),
         ('tearsheet', False),
         ('args', None)
     )
@@ -31,25 +30,25 @@ class Nirvana(bt.Strategy):
 
     def __init__(self):
         self.dataclose = self.datas[0].close
-        self.inout = 0
         self.order = None
+
         if not self.p.optimizer:
             self.rows = []
             self.rows.append("Date,Transaction,Symbol,Shares,Price")
-        self.buy_price = {}
+
         self.first_run = True
         if (self.p.tearsheet):
             self.portvalue = self.broker.getvalue()
             self.gains = []
             self.dates = []
 
-        self.target = self.p.portin.copy()
+        self.target = self.p.portfolio.copy()
         self.target_update = self.target.copy()
-
         self.ticker = {}
         self.ma_above = {}
         self.portfolio = {}
         self.df_history = {}
+
         for symbol in self.target:
             self.df_history[symbol] = pd.read_csv("history/" + symbol + ".csv").set_index("Date")
 
@@ -69,30 +68,6 @@ class Nirvana(bt.Strategy):
             'UGL':   {'ma': 'SMA_180', 'upper': 1.05, 'lower': 0.90},
             'TSLA':  {'ma': 'SMA_180', 'upper': 1.05, 'lower': 0.90}
         }
-
-    def notify_order(self, order):
-        debug = False
-        if order.status in [order.Submitted, order.Accepted]:
-            # Buy/Sell order submitted/accepted to/by broker - Nothing to do
-            return
-
-        # Check if an order has been completed
-        # NOTE: broker could reject order if not enough cash
-        if order.status in [order.Completed]:
-            if order.isbuy():
-                if debug:
-                    self.log('BUY EXECUTED, %.2f' % order.executed.price)
-            elif order.issell():
-                if debug:
-                    self.log('SELL EXECUTED, %.2f' % order.executed.price)
-
-            self.bar_executed = len(self)
-
-        elif order.status in [order.Canceled, order.Margin, order.Rejected]:
-            self.log('Order Canceled/Margin/Rejected (status = ' + str(order.status) + ')')
-
-        # Write down: no pending order
-        self.order = None
 
     def next(self):
         date_dt = self.datas[0].datetime.date(0)
@@ -193,6 +168,30 @@ class Nirvana(bt.Strategy):
         if not self.p.optimizer:
             with open('trades.csv', 'w') as filehandle:
                 filehandle.writelines("%s\n" % row for row in self.rows)
+
+    def notify_order(self, order):
+        debug = False
+        if order.status in [order.Submitted, order.Accepted]:
+            # Buy/Sell order submitted/accepted to/by broker - Nothing to do
+            return
+
+        # Check if an order has been completed
+        # NOTE: broker could reject order if not enough cash
+        if order.status in [order.Completed]:
+            if order.isbuy():
+                if debug:
+                    self.log('BUY EXECUTED, %.2f' % order.executed.price)
+            elif order.issell():
+                if debug:
+                    self.log('SELL EXECUTED, %.2f' % order.executed.price)
+
+            self.bar_executed = len(self)
+
+        elif order.status in [order.Canceled, order.Margin, order.Rejected]:
+            self.log('Order Canceled/Margin/Rejected (status = ' + str(order.status) + ')')
+
+        # Write down: no pending order
+        self.order = None
 
 class GuardDog(bt.Strategy):
 

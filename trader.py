@@ -91,7 +91,7 @@ def backtest(a, b, c, d, optimizer=False, args=None):
         cerebro.addstrategy(BuyHold, portfolio=portin)
     else:
         cerebro.addstrategy(Nirvana, a=a, b=b, c=c, d=d,
-            optimizer=optimizer, portin=portin, portout=portout, tearsheet=args.tearsheet, args=args)
+            optimizer=optimizer, portfolio=portin, tearsheet=args.tearsheet, args=args)
 
     cerebro.addsizer(LongOnly, portfolio=portin)
 
