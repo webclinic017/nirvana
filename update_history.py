@@ -96,6 +96,7 @@ def merge_history(df, ticker):
     print('')
     history = yf.download(tickers=[ticker], start=start_date).reset_index()
     history['Date'] = pd.to_datetime(history['Date']).dt.date
+    history = history[~(history['Date'] <= last_date_dt.date())]
     history = history.set_index("Date")
     merge = pd.concat([df,history])
     merge = add_ta(merge)
