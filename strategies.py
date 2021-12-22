@@ -98,20 +98,24 @@ class Nirvana(bt.Strategy):
         date_dt = self.datas[0].datetime.date(0)
         date = date_dt.strftime('%Y-%m-%d')
 
-        # update daily closing price and moving average
+        # update daily closing price and moving average from historical data
         for symbol in self.target:
-            self.ticker[symbol] = {'price': self.df_history[symbol].loc[date]['Adj Close'], 'ma': self.df_history[symbol].loc[date][self.ma_limits[symbol]['ma']]}
+            ma = self.ma_limits[symbol]['ma']
+            self.ticker[symbol] = {
+                'price': self.df_history[symbol].loc[date]['Adj Close'],
+                'ma': self.df_history[symbol].loc[date][ma]
+            }
 
-        # determine if we are above the upper range of moving average at the start
+        # determine if we are above the moving average at the start of the backtest
         if self.first_run:
             for symbol in self.target:
-                self.ma_above[symbol] = self.ticker[symbol]['price'] >= self.ticker[symbol]['ma'] * 1.0
+                self.ma_above[symbol] = self.ticker[symbol]['price'] >= self.ticker[symbol]['ma']
                 if not self.ma_above[symbol]:
                     self.target_update[symbol] = 0
 
         rebalance_ma = False
 
-        # check if price crossed moving average
+        # check if price crossed moving average and update target allocations
         for symbol in self.target:
             if (self.ticker[symbol]['price'] < self.ticker[symbol]['ma'] * self.ma_limits[symbol]['lower'] and self.ma_above[symbol]):
                 self.target_update[symbol] = 0
@@ -125,12 +129,12 @@ class Nirvana(bt.Strategy):
         # update cash at broker
         cash = self.broker.getcash()
 
-        # update ortfolio holdings at broker
+        # update portfolio holdings at broker
         for data in self.datas:
             if (data._name in self.target):
                 self.portfolio[data._name] = {'shares': self.broker.getposition(data).size, 'last_price':data.close[0]}
 
-        # check if any positions in portfolio are outside rebalancing bands
+        # check if any positions in portfolio are outside rebalancing bands using updated positions and target allocations
         rebalance_bands = self.rb.rebalance_check(cash, self.portfolio, self.target_update)
         
         if (rebalance_bands or rebalance_ma or self.first_run):
