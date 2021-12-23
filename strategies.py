@@ -107,10 +107,11 @@ class Nirvana(bt.Strategy):
         rebalance_ma = False
 
         # check if price crossed moving average and update target allocations
+        use_macd = True
         for symbol in self.target:
             if symbol in ['SPXL', 'TQQQ']: # Use SPY moving average for SP500 related equities
-                ma_below = self.ticker['SPY']['price'] < self.ticker['SPY']['ma'] * self.ma_limits['SPY']['lower']
-                ma_above = self.ticker['SPY']['price'] >= self.ticker['SPY']['ma'] * self.ma_limits['SPY']['upper'] #or self.ticker['SPY']['macd_diff']
+                ma_below = self.ticker['SPY']['price'] < self.ticker['SPY']['ma'] * self.ma_limits['SPY']['lower'] and (not use_macd or self.ticker['SPY']['macd_diff'] <= 0)
+                ma_above = self.ticker['SPY']['price'] >= self.ticker['SPY']['ma'] * self.ma_limits['SPY']['upper'] or (use_macd and self.ticker['SPY']['macd_diff'] > 1.5)
             else:
                 ma_below = self.ticker[symbol]['price'] < self.ticker[symbol]['ma'] * self.ma_limits[symbol]['lower']
                 ma_above = self.ticker[symbol]['price'] >= self.ticker[symbol]['ma'] * self.ma_limits[symbol]['upper']
