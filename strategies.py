@@ -82,7 +82,8 @@ class Nirvana(bt.Strategy):
             ma = self.ma_limits[symbol]['ma']
             self.ticker[symbol] = {
                 'price': self.df_history[symbol].loc[date]['Adj Close'],
-                'ma': self.df_history[symbol].loc[date][ma]
+                'ma': self.df_history[symbol].loc[date][ma],
+                'macd_diff': self.df_history[symbol].loc[date]['MACD_diff']
             }
 
         if 'SPY' not in self.target:
@@ -96,7 +97,7 @@ class Nirvana(bt.Strategy):
         # determine if we are above the moving average at the start of the backtest
         if self.first_run:
             for symbol in self.target:
-                if symbol in ['SPXL', 'TQQQ']:
+                if symbol in ['SPY', 'SPXL', 'TQQQ']:
                     self.ma_above[symbol] = self.ticker['SPY']['price'] >= self.ticker['SPY']['ma']
                 else:
                     self.ma_above[symbol] = self.ticker[symbol]['price'] >= self.ticker[symbol]['ma']
@@ -109,12 +110,12 @@ class Nirvana(bt.Strategy):
         # check if price crossed moving average and update target allocations
         use_macd = True
         for symbol in self.target:
-            if symbol in ['SPXL', 'TQQQ']: # Use SPY moving average for SP500 related equities
-                ma_below = self.ticker['SPY']['price'] < self.ticker['SPY']['ma'] * self.ma_limits['SPY']['lower'] and (not use_macd or self.ticker['SPY']['macd_diff'] <= 0)
+            if symbol in ['SPY', 'SPXL', 'TQQQ']: # Use SPY moving average for SP500 related equities
+                ma_below = self.ticker['SPY']['price'] < self.ticker['SPY']['ma'] * self.ma_limits['SPY']['lower'] and (not use_macd or self.ticker['SPY']['macd_diff'] < 1.5)
                 ma_above = self.ticker['SPY']['price'] >= self.ticker['SPY']['ma'] * self.ma_limits['SPY']['upper'] or (use_macd and self.ticker['SPY']['macd_diff'] > 1.5)
             else:
-                ma_below = self.ticker[symbol]['price'] < self.ticker[symbol]['ma'] * self.ma_limits[symbol]['lower']
-                ma_above = self.ticker[symbol]['price'] >= self.ticker[symbol]['ma'] * self.ma_limits[symbol]['upper']
+                ma_below = self.ticker[symbol]['price'] < self.ticker[symbol]['ma'] * self.ma_limits[symbol]['lower'] and (not use_macd or self.ticker[symbol]['macd_diff'] < 1.5)
+                ma_above = self.ticker[symbol]['price'] >= self.ticker[symbol]['ma'] * self.ma_limits[symbol]['upper'] or (use_macd and self.ticker[symbol]['macd_diff'] > 1.5)
         
             if (ma_below and self.ma_above[symbol]):
                 self.target_update[symbol] = 0
