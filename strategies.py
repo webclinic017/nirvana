@@ -52,14 +52,18 @@ class Nirvana(bt.Strategy):
         for symbol in self.target:
             self.df_history[symbol] = pd.read_csv("history/" + symbol + ".csv").set_index("Date")
 
+        if 'SPY' not in self.target:
+            self.df_history['SPY'] = pd.read_csv("history/SPY.csv").set_index("Date")
+
         # create rebalancer and set absolute and relative deviation limits
         self.rb = rebalancer.Rebalancer(absolute_deviation_limit = 0.05, relative_deviation_limit = 0.25)
 
         # set moving average type and period plus upper and lower limits
         self.ma_limits = {
-            'SPY':   {'ma': 'SMA_200', 'upper': 1.04, 'lower': 0.95},
+            'SPY':   {'ma': 'SMA_180', 'upper': 1.04, 'lower': 0.95},
             'SPXL':  {'ma': 'SMA_200', 'upper': 1.05, 'lower': 0.90},
             'TQQQ':  {'ma': 'SMA_180', 'upper': 1.03, 'lower': 0.95},
+            'QQQ':   {'ma': 'SMA_200', 'upper': 1.04, 'lower': 0.95},
             'TLT':   {'ma': 'SMA_180', 'upper': 1.05, 'lower': 0.90},
             'TMF':   {'ma': 'SMA_180', 'upper': 1.05, 'lower': 0.90},
             'GBTC':  {'ma': 'SMA_50',  'upper': 1.05, 'lower': 0.90},
@@ -81,10 +85,22 @@ class Nirvana(bt.Strategy):
                 'ma': self.df_history[symbol].loc[date][ma]
             }
 
+        if 'SPY' not in self.target:
+            ma = self.ma_limits['SPY']['ma']
+            self.ticker['SPY'] = {
+                'price': self.df_history['SPY'].loc[date]['Adj Close'],
+                'ma': self.df_history['SPY'].loc[date][ma],
+                'macd_diff': self.df_history['SPY'].loc[date]['MACD_diff']
+            }
+
         # determine if we are above the moving average at the start of the backtest
         if self.first_run:
             for symbol in self.target:
-                self.ma_above[symbol] = self.ticker[symbol]['price'] >= self.ticker[symbol]['ma']
+                if symbol in ['SPXL', 'TQQQ']:
+                    self.ma_above[symbol] = self.ticker['SPY']['price'] >= self.ticker['SPY']['ma']
+                else:
+                    self.ma_above[symbol] = self.ticker[symbol]['price'] >= self.ticker[symbol]['ma']
+
                 if not self.ma_above[symbol]:
                     self.target_update[symbol] = 0
 
@@ -92,11 +108,18 @@ class Nirvana(bt.Strategy):
 
         # check if price crossed moving average and update target allocations
         for symbol in self.target:
-            if (self.ticker[symbol]['price'] < self.ticker[symbol]['ma'] * self.ma_limits[symbol]['lower'] and self.ma_above[symbol]):
+            if symbol in ['SPXL', 'TQQQ']: # Use SPY moving average for SP500 related equities
+                ma_below = self.ticker['SPY']['price'] < self.ticker['SPY']['ma'] * self.ma_limits['SPY']['lower']
+                ma_above = self.ticker['SPY']['price'] >= self.ticker['SPY']['ma'] * self.ma_limits['SPY']['upper'] #or self.ticker['SPY']['macd_diff']
+            else:
+                ma_below = self.ticker[symbol]['price'] < self.ticker[symbol]['ma'] * self.ma_limits[symbol]['lower']
+                ma_above = self.ticker[symbol]['price'] >= self.ticker[symbol]['ma'] * self.ma_limits[symbol]['upper']
+        
+            if (ma_below and self.ma_above[symbol]):
                 self.target_update[symbol] = 0
                 self.ma_above[symbol] = False
                 rebalance_ma = True
-            elif (self.ticker[symbol]['price'] >= self.ticker[symbol]['ma'] * self.ma_limits[symbol]['upper'] and not self.ma_above[symbol]):
+            elif (ma_above and not self.ma_above[symbol]):
                 self.target_update[symbol] = self.target[symbol]
                 self.ma_above[symbol] = True
                 rebalance_ma = True
