@@ -7,7 +7,7 @@ source venv/bin/activate
 pip install -r requirement.txt
 ```
 
-:warning: edit /opt/vixray/venv/lib/python3.8/site-packages/backtrader/plot/locator.py and remove **', warning'** from line 39 pos 49
+:warning: edit venv/lib/python3.8/site-packages/backtrader/plot/locator.py and remove **', warning'** from line 39 pos 49
 
 ```
 python update_history.py # only run once
