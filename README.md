@@ -9,11 +9,12 @@ pip install -r requirement.txt
 
 :warning: edit venv/lib/python3.8/site-packages/backtrader/plot/locator.py and remove **', warning'** from line 39 pos 49
 
+## Update History
 ```
-python update_history.py # only run once
+python update_history.py
 ```
 
-## Running
+## Run Backtest
 ```
 python trader.py --portin=SPXL/100 --fromdate 1993-01-29 --benchmark SPXL
 ```
