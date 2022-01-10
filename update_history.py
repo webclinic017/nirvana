@@ -33,13 +33,29 @@ tickers = [
     'ETHE',
     'EDV',
     'UGL',
-    'GDX'
+    'GDX',
+    'ARKG',
+    'ARKK',
+    'AMZN',
+    'CSCO',
+    'UST',
+    'DIG',
+    'UGL',
+    'TYD',
+    'UTSL',
+    'RIOT',
+    'EET',
+    'EEM'
     ]
 
 def add_ta(df):
     # classta.trend.MACD(close: pandas.core.series.Series, window_slow: int = 26, window_fast: int = 12, window_sign: int = 9, fillna: bool = False)
     macd_diff = ta.trend.MACD(df['Adj Close']).macd_diff()
     df['MACD_diff'] = macd_diff
+    ppo = ta.momentum.PercentagePriceOscillator(df['Adj Close'], window_slow = 26, window_fast = 12, window_sign = 9, fillna = False)
+    df['PPO'] = ppo.ppo_hist()
+    rsi = ta.momentum.RSIIndicator(df['Adj Close'], window = 14, fillna = False)
+    df['RSI'] = rsi.rsi()
     sma_250 = ta.trend.sma_indicator(df['Adj Close'], window=250, fillna=True)
     df['SMA_250'] = sma_250
     sma_225 = ta.trend.sma_indicator(df['Adj Close'], window=225, fillna=True)
