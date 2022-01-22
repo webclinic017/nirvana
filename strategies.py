@@ -56,6 +56,9 @@ class Nirvana(bt.Strategy):
             self.gains = []
             self.dates = []
 
+        # MACD is based on absolute values while PPO is based on percentages so use PPO here
+        self.use_ppo = True
+
         self.target = self.p.portfolio.copy()
         self.target_update = self.target.copy()
         self.ticker = {}
@@ -86,10 +89,10 @@ class Nirvana(bt.Strategy):
 
         # set moving average type and period plus upper and lower limits
         self.ma_limits = {
-            'SPY':     {'type': 'SMA_100', 'upper': 1.01, 'lower': 0.97},
+            'SPY':     {'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
             'QQQ':     {'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
             'EEM':     {'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
-            'TLT':     {'type': 'SMA_150', 'upper': 1.01, 'lower': 0.96},
+            'TLT':     {'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
             'GBTC':    {'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
             'ETHE':    {'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
             'GLD':     {'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
@@ -151,32 +154,30 @@ class Nirvana(bt.Strategy):
                 if not self.ma_above[symbol]:
                     self.target_update[symbol] = 0
 
-        # check if price crossed moving average and update target allocations
-        # MACD is based on absolute values while PPO is based on percentages so use PPO here
-        use_ppo = True
-
+        # check if price crossed moving average threshold, if so, update target allocations and rebalance
+        rebalance_ma = False
         for symbol in self.target:
             ma_below = False
             ma_above = True
 
             if symbol in ['SPY', 'SSO', 'SPXL', 'RSP']: # Use SPY moving average for SP500 related equities
-                ma_below = self.ticker['SPY']['price'] < self.ticker['SPY']['ma'] * self.ticker['SPY']['ma_lower'] and (not use_ppo or self.ticker['SPY']['ppo'] < 0.75)
-                ma_above = self.ticker['SPY']['price'] >= self.ticker['SPY']['ma'] * self.ticker['SPY']['ma_upper'] or (use_ppo and self.ticker['SPY']['ppo'] > 1.0) or self.ticker['SPY']['rsi'] < 21
+                ma_below = self.ticker['SPY']['price'] < self.ticker['SPY']['ma'] * self.ticker['SPY']['ma_lower'] and (not self.use_ppo or self.ticker['SPY']['ppo'] < 0.75)
+                ma_above = self.ticker['SPY']['price'] >= self.ticker['SPY']['ma'] * self.ticker['SPY']['ma_upper'] or (self.use_ppo and self.ticker['SPY']['ppo'] > 1.0) or self.ticker['SPY']['rsi'] < 21
             elif symbol in ['QQQ', 'QLD', 'TQQQ']: # Use QQQ moving average for QQQ related equities
-                ma_below = self.ticker['QQQ']['price'] < self.ticker['QQQ']['ma'] * self.ticker['QQQ']['ma_lower'] and (not use_ppo or self.ticker['QQQ']['ppo'] < 0.75)
-                ma_above = self.ticker['QQQ']['price'] >= self.ticker['QQQ']['ma'] * self.ticker['QQQ']['ma_upper'] or (use_ppo and self.ticker['QQQ']['ppo'] > 1.0) or self.ticker['QQQ']['rsi'] < 21
+                ma_below = self.ticker['QQQ']['price'] < self.ticker['QQQ']['ma'] * self.ticker['QQQ']['ma_lower'] and (not self.use_ppo or self.ticker['QQQ']['ppo'] < 0.75)
+                ma_above = self.ticker['QQQ']['price'] >= self.ticker['QQQ']['ma'] * self.ticker['QQQ']['ma_upper'] or (self.use_ppo and self.ticker['QQQ']['ppo'] > 1.0) or self.ticker['QQQ']['rsi'] < 21
             elif symbol in ['TLT', 'UBT', 'TMF']: # Use TLT moving average for 20-year treasury related equities
-                ma_below = self.ticker['TLT']['price'] < self.ticker['TLT']['ma'] * self.ticker['TLT']['ma_lower'] and (not use_ppo or self.ticker['TLT']['ppo'] < 0.75)
-                ma_above = self.ticker['TLT']['price'] >= self.ticker['TLT']['ma'] * self.ticker['TLT']['ma_upper'] or (use_ppo and self.ticker['TLT']['ppo'] > 1.0) or self.ticker['TLT']['rsi'] < 20
+                ma_below = self.ticker['TLT']['price'] < self.ticker['TLT']['ma'] * self.ticker['TLT']['ma_lower'] and (not self.use_ppo or self.ticker['TLT']['ppo'] < 0.75)
+                ma_above = self.ticker['TLT']['price'] >= self.ticker['TLT']['ma'] * self.ticker['TLT']['ma_upper'] or (self.use_ppo and self.ticker['TLT']['ppo'] > 1.0) or self.ticker['TLT']['rsi'] < 20
             elif symbol in ['GLD', 'UGL']: # Use GLD moving average for gold related equities
-                ma_below = self.ticker['GLD']['price'] < self.ticker['GLD']['ma'] * self.ticker['GLD']['ma_lower'] and (not use_ppo or self.ticker['GLD']['ppo'] < 0.75)
-                ma_above = self.ticker['GLD']['price'] >= self.ticker['GLD']['ma'] * self.ticker['GLD']['ma_upper'] or (use_ppo and self.ticker['GLD']['ppo'] > 1.0) or self.ticker['GLD']['rsi'] < 20
+                ma_below = self.ticker['GLD']['price'] < self.ticker['GLD']['ma'] * self.ticker['GLD']['ma_lower'] and (not self.use_ppo or self.ticker['GLD']['ppo'] < 0.75)
+                ma_above = self.ticker['GLD']['price'] >= self.ticker['GLD']['ma'] * self.ticker['GLD']['ma_upper'] or (self.use_ppo and self.ticker['GLD']['ppo'] > 1.0) or self.ticker['GLD']['rsi'] < 20
             elif symbol in ['SLV', 'AGQ']: # Use SLV moving average for silver related equities
-                ma_below = self.ticker['SLV']['price'] < self.ticker['SLV']['ma'] * self.ticker['SLV']['ma_lower'] and (not use_ppo or self.ticker['SLV']['ppo'] < 0.75)
-                ma_above = self.ticker['SLV']['price'] >= self.ticker['SLV']['ma'] * self.ticker['SLV']['ma_upper'] or (use_ppo and self.ticker['SLV']['ppo'] > 1.0) or self.ticker['GLD']['rsi'] < 20
+                ma_below = self.ticker['SLV']['price'] < self.ticker['SLV']['ma'] * self.ticker['SLV']['ma_lower'] and (not self.use_ppo or self.ticker['SLV']['ppo'] < 0.75)
+                ma_above = self.ticker['SLV']['price'] >= self.ticker['SLV']['ma'] * self.ticker['SLV']['ma_upper'] or (self.use_ppo and self.ticker['SLV']['ppo'] > 1.0) or self.ticker['GLD']['rsi'] < 20
             else:
-                ma_below = self.ticker[symbol]['price'] < self.ticker[symbol]['ma'] * self.ticker[symbol]['ma_lower'] and (not use_ppo or self.ticker[symbol]['ppo'] < 0.75) or self.ticker[symbol]['rsi'] < 20
-                ma_above = self.ticker[symbol]['price'] >= self.ticker[symbol]['ma'] * self.ticker[symbol]['ma_upper'] or (use_ppo and self.ticker[symbol]['ppo'] > 1.0) or self.ticker[symbol]['rsi'] < 20
+                ma_below = self.ticker[symbol]['price'] < self.ticker[symbol]['ma'] * self.ticker[symbol]['ma_lower'] and (not self.use_ppo or self.ticker[symbol]['ppo'] < 0.75)
+                ma_above = self.ticker[symbol]['price'] >= self.ticker[symbol]['ma'] * self.ticker[symbol]['ma_upper'] or (self.use_ppo and self.ticker[symbol]['ppo'] > 1.0) or self.ticker[symbol]['rsi'] < 20
 
             # logic to determine if we need to move completely in or out of an ETF base on moving average
             if (ma_below and self.ma_above[symbol]): # if we fall below MA after being above threshold then set allocation to 0
@@ -187,8 +188,6 @@ class Nirvana(bt.Strategy):
                 self.target_update[symbol] = self.target[symbol]
                 self.ma_above[symbol] = True
                 rebalance_ma = True
-            else:
-                rebalance_ma = False
 
         # update cash at broker
         cash = self.broker.getcash()
