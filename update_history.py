@@ -11,41 +11,59 @@ pathlib.Path("history").mkdir(parents=True, exist_ok=True)
 date_format = '%Y-%m-%d'
 
 tickers = [
+    # SP500
     'SPY',
-    'QQQ',
     'SSO',
+    'RSP',
+
+    # NASDAQ-100
+    'QQQ',
     'QLD',
+
+    # Emerging Markets
+    'EET',
+    'EEM',
+
+    'IEF', # iShares 7-10 Year Treasury Bond ETF
+    'TYD', # Direxion Daily 7-10 Year Treasury Bull 3X Shares
+    'UST', # ProShares Ultra 7-10 Year Treasury
+
+    'TLT', # iShares 20+ Year Treasury Bond ETF
+    'UBT',
+    'TMF',
+
+    'GSY', # Invesco Ultra Short Duration ETF
+
+    # Gold
+    'GLD',
+    'UGL',
+    'GDX',
+
+    # Silver
+    'SLV',
+    'AGQ',
+
+    # Crypto
+    'GBTC',
+    'ETHE',
+    'RIOT',
+
+    'ARKG',
+    'ARKK',
+
+    'FNGU', # MicroSectors FANG+ Index 3X Leveraged ETN
+    'DIG', # ProShares Ultra Oil & Gas
+    'UTSL', # Direxion Daily Utilities Bull 3X Shares
+
+    # Stocks
     'TSLA',
     'AAPL',
     'MSFT',
     'SBUX',
     'GOOG',
-    'FNGU',
-    'TLT',
-    'GSY',
-    'GLD',
-    'SQQQ',
-    'SLV',
-    'TBT',
-    'UBT',
-    'IEF',
-    'GBTC',
-    'ETHE',
-    'EDV',
-    'UGL',
-    'GDX',
-    'ARKG',
-    'ARKK',
     'AMZN',
     'CSCO',
-    'UST',
-    'DIG',
-    'UGL',
-    'TYD',
-    'UTSL',
-    'RIOT',
-    'EET',
-    'EEM'
+    'SQ'
     ]
 
 def add_ta(df):
