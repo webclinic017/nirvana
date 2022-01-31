@@ -2,6 +2,8 @@
 
 ## Installation
 ```
+git clone git@github.com:seekingsharpe/nirvana.git
+cd nirvana
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirement.txt
