@@ -29,8 +29,7 @@ tickers = [
     'UST', # ProShares Ultra 7-10 Year Treasury
 
     'TLT', # iShares 20+ Year Treasury Bond ETF
-    'UBT',
-    'TMF',
+    'UBT', # ProShares Ultra 20+ Year Treasury
 
     'GSY', # Invesco Ultra Short Duration ETF
 
