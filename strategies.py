@@ -50,6 +50,7 @@ class Nirvana(bt.Strategy):
             self.rows = []
             self.rows.append("Date,Transaction,Symbol,Shares,Price")
 
+        self.count = 1
         self.first_run = True
         if (self.p.tearsheet):
             self.portvalue = self.broker.getvalue()
@@ -62,134 +63,98 @@ class Nirvana(bt.Strategy):
         self.target = self.p.portfolio.copy()
         self.target_update = self.target.copy()
         self.ticker = {}
-        self.ma_above = {}
+        self.risk_on = {}
         self.portfolio = {}
         self.df_history = {}
 
-        for symbol in self.target:
-            self.df_history[symbol] = pd.read_csv("history/" + symbol + ".csv").set_index("Date")
-
-        if 'SPY' not in self.target:
-            self.df_history['SPY'] = pd.read_csv("history/SPY.csv").set_index("Date")
-
-        if 'QQQ' not in self.target and ('QLD' in self.target or 'TQQQ' in self.target):
-            self.df_history['QQQ'] = pd.read_csv("history/QQQ.csv").set_index("Date")
-
-        if 'TLT' not in self.target and ('UBT' in self.target or 'TMF' in self.target):
-            self.df_history['TLT'] = pd.read_csv("history/TLT.csv").set_index("Date")
-
-        if 'GLD' not in self.target and 'UGL' in self.target:
-            self.df_history['GLD'] = pd.read_csv("history/GLD.csv").set_index("Date")
-
-        if 'SLV' not in self.target and 'AGQ' in self.target:
-            self.df_history['SLV'] = pd.read_csv("history/SLV.csv").set_index("Date")
+        # set to non-zero for time-based rebalancing
+        self.rebalance_days = 0
 
         # create rebalancer and set absolute and relative deviation limits
         self.rb = rebalancer.Rebalancer(absolute_deviation_limit = 0.05, relative_deviation_limit = 0.25)
 
         # set moving average type and period plus upper and lower limits
-        self.ma_limits = {
-            'SPY':     {'type': 'SMA_100', 'upper': 1.01, 'lower': 0.98},
-            'QQQ':     {'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
-            'EEM':     {'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
-            'TLT':     {'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
-            'GBTC':    {'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
-            'ETHE':    {'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
-            'GLD':     {'type': 'SMA_100', 'upper': 0.00, 'lower': 0.00},
-            'SLV':     {'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
-            'default': {'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96}
+        self.rules = {
+            'SPY':     {'enable': True,  'sym': 'SPY',  'type': 'SMA_180', 'upper': 1.03, 'lower': 0.97},
+            'SPXL':    {'enable': True,  'sym': 'SPY',  'type': 'SMA_180', 'upper': 1.04, 'lower': 0.95},
+            'QQQ':     {'enable': True,  'sym': 'QQQ',  'type': 'SMA_180', 'upper': 1.02, 'lower': 0.98},
+            'QLD':     {'enable': True,  'sym': 'SPY',  'type': 'SMA_180', 'upper': 1.02, 'lower': 0.98},
+            'TQQQ':    {'enable': True,  'sym': 'SPY',  'type': 'SMA_180', 'upper': 1.02, 'lower': 0.98},
+            'EEM':     {'enable': True,  'sym': 'EEM',  'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
+            'TLT':     {'enable': True,  'sym': 'TLT',  'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
+            'GBTC':    {'enable': True,  'sym': 'GBTC', 'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
+            'ETHE':    {'enable': True,  'sym': 'ETHE', 'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
+            'GLD':     {'enable': True,  'sym': 'GLD',  'type': 'SMA_100', 'upper': 0.00, 'lower': 0.00},
+            'SLV':     {'enable': True,  'sym': 'SLV',  'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96}
         }
 
-        for symbol in self.df_history:
-            if symbol in self.ma_limits:
-                ma_type = self.ma_limits[symbol]['type']
-                ma_upper = self.ma_limits[symbol]['upper']
-                ma_lower = self.ma_limits[symbol]['lower']
-            else:
-                ma_type = self.ma_limits['default']['type']
-                ma_upper = self.ma_limits['default']['upper']
-                ma_lower = self.ma_limits['default']['lower']
-            self.ticker[symbol] = {
-                'ma_type': ma_type,
-                'ma_upper': ma_upper,
-                'ma_lower': ma_lower,
-                'price': 0.0,
-                'ma': 0.0,
-                'ppo': 0.0,
-                'rsi': 0.0,
-                'in_uptrend': 0.0
-            }
-
-        self.count = 1
+        # find all symbols needed for indicators
+        for symbol in self.target:
+            if symbol in self.rules:
+                rules_symbol = self.rules[symbol]['sym']
+                if rules_symbol not in self.df_history:
+                    self.df_history[rules_symbol] = pd.read_csv("history/" + rules_symbol + ".csv").set_index("Date")
+                self.ticker[symbol] = {
+                    'ma_enable': self.rules[symbol]['enable'],
+                    'ma_symbol': self.rules[symbol]['sym'],
+                    'ma_type': self.rules[symbol]['type'],
+                    'ma_upper': self.rules[symbol]['upper'],
+                    'ma_lower': self.rules[symbol]['lower'],
+                    'price': 0.0,
+                    'ma': 0.0,
+                    'ppo': 0.0,
+                    'rsi': 0.0,
+                    'in_uptrend': 0.0
+                }
 
     def next(self):
         date_dt = self.datas[0].datetime.date(0)
         date = date_dt.strftime('%Y-%m-%d')
 
-        # update daily closing price and moving average from historical data
-        for symbol in self.df_history:
-            self.ticker[symbol]['price'] = self.df_history[symbol].loc[date]['Adj Close']
-            self.ticker[symbol]['ma'] = self.df_history[symbol].loc[date][self.ticker[symbol]['ma_type']]
-            self.ticker[symbol]['ppo'] = self.df_history[symbol].loc[date]['PPO']
-            self.ticker[symbol]['rsi'] = self.df_history[symbol].loc[date]['RSI']
-            self.ticker[symbol]['in_uptrend'] = self.df_history[symbol].loc[date]['in_uptrend']
+        # update daily closing price and moving average for indicators
+        for symbol in self.ticker:
+            rules_sym = self.rules[symbol]['sym']
+            self.ticker[symbol]['price'] = self.df_history[rules_sym].loc[date]['Adj Close']
+            self.ticker[symbol]['ma'] = self.df_history[rules_sym].loc[date][self.ticker[symbol]['ma_type']]
+            self.ticker[symbol]['ppo'] = self.df_history[rules_sym].loc[date]['PPO']
+            self.ticker[symbol]['rsi'] = self.df_history[rules_sym].loc[date]['RSI']
+            self.ticker[symbol]['in_uptrend'] = self.df_history[rules_sym].loc[date]['in_uptrend']
 
         # determine if we are above the moving average at the start of the backtest
         if self.first_run:
-            for symbol in self.target:
-                if symbol in ['SPY', 'SSO', 'SPXL', 'FNGU', 'RSP']:
-                    self.ma_above[symbol] = self.ticker['SPY']['price'] >= self.ticker['SPY']['ma']
-                if symbol in ['QQQ', 'QLD', 'TQQQ']:
-                    self.ma_above[symbol] = self.ticker['QQQ']['price'] >= self.ticker['QQQ']['ma']
-                elif symbol in ['TLT', 'UBT', 'TMF']:
-                    self.ma_above[symbol] = self.ticker['TLT']['price'] >= self.ticker['TLT']['ma']
-                elif symbol in ['GLD', 'UGL']:
-                    self.ma_above[symbol] = self.ticker['GLD']['price'] >= self.ticker['GLD']['ma']
-                elif symbol in ['SLV', 'AGQ']:
-                    self.ma_above[symbol] = self.ticker['SLV']['price'] >= self.ticker['SLV']['ma']
+            for symbol in self.ticker:
+                if self.ticker[symbol]['ma_enable'] == True:
+                    self.risk_on[symbol] = self.ticker[symbol]['price'] >= self.ticker[symbol]['ma']
                 else:
-                    self.ma_above[symbol] = True # self.ticker[symbol]['price'] >= self.ticker[symbol]['ma']
+                    self.risk_on[symbol] = True
 
                 # set target position to zero if below moving average at the start
-                if not self.ma_above[symbol]:
+                if not self.risk_on[symbol]:
                     self.target_update[symbol] = 0
 
         # check if price crossed moving average threshold, if so, update target allocations and rebalance
         rebalance_ma = False
-        for symbol in self.target:
-            ma_below = False
-            ma_above = True
+        for symbol in self.ticker:
+            if self.ticker[symbol]['ma_enable'] == True:
+                risk_off = (
+                    self.ticker[symbol]['price'] < self.ticker[symbol]['ma'] * self.ticker[symbol]['ma_lower']
+                    and (not self.use_ppo or self.ticker[symbol]['ppo'] < 0.75) 
+                    and self.ticker[symbol]['rsi'] > 22
+                )
+                risk_on = (
+                    self.ticker[symbol]['price'] >= self.ticker[symbol]['ma'] * self.ticker[symbol]['ma_upper']
+                    or (self.use_ppo and self.ticker[symbol]['ppo'] > 1.0)
+                    or self.ticker[symbol]['rsi'] < 21
+                )
 
-            if symbol in ['SPY', 'SSO', 'SPXL', 'RSP']: # Use SPY moving average for SP500 related equities
-                ma_below = self.ticker['SPY']['price'] < self.ticker['SPY']['ma'] * self.ticker['SPY']['ma_lower'] and (not self.use_ppo or self.ticker['SPY']['ppo'] < 0.75)
-                ma_above = self.ticker['SPY']['price'] >= self.ticker['SPY']['ma'] * self.ticker['SPY']['ma_upper'] or (self.use_ppo and self.ticker['SPY']['ppo'] > 1.0) or self.ticker['SPY']['rsi'] < 21
-            elif symbol in ['QQQ', 'QLD', 'TQQQ']: # Use QQQ moving average for QQQ related equities
-                ma_below = self.ticker['QQQ']['price'] < self.ticker['QQQ']['ma'] * self.ticker['QQQ']['ma_lower'] and (not self.use_ppo or self.ticker['QQQ']['ppo'] < 0.75)
-                ma_above = self.ticker['QQQ']['price'] >= self.ticker['QQQ']['ma'] * self.ticker['QQQ']['ma_upper'] or (self.use_ppo and self.ticker['QQQ']['ppo'] > 1.0) or self.ticker['QQQ']['rsi'] < 21
-            elif symbol in ['TLT', 'UBT', 'TMF']: # Use TLT moving average for 20-year treasury related equities
-                ma_below = self.ticker['TLT']['price'] < self.ticker['TLT']['ma'] * self.ticker['TLT']['ma_lower'] and (not self.use_ppo or self.ticker['TLT']['ppo'] < 0.75)
-                ma_above = self.ticker['TLT']['price'] >= self.ticker['TLT']['ma'] * self.ticker['TLT']['ma_upper'] or (self.use_ppo and self.ticker['TLT']['ppo'] > 1.0) or self.ticker['TLT']['rsi'] < 20
-            elif symbol in ['GLD', 'UGL']: # Use GLD moving average for gold related equities
-                ma_below = self.ticker['GLD']['price'] < self.ticker['GLD']['ma'] * self.ticker['GLD']['ma_lower'] and (not self.use_ppo or self.ticker['GLD']['ppo'] < 0.75)
-                ma_above = self.ticker['GLD']['price'] >= self.ticker['GLD']['ma'] * self.ticker['GLD']['ma_upper'] or (self.use_ppo and self.ticker['GLD']['ppo'] > 1.0) or self.ticker['GLD']['rsi'] < 20
-            elif symbol in ['SLV', 'AGQ']: # Use SLV moving average for silver related equities
-                ma_below = self.ticker['SLV']['price'] < self.ticker['SLV']['ma'] * self.ticker['SLV']['ma_lower'] and (not self.use_ppo or self.ticker['SLV']['ppo'] < 0.75)
-                ma_above = self.ticker['SLV']['price'] >= self.ticker['SLV']['ma'] * self.ticker['SLV']['ma_upper'] or (self.use_ppo and self.ticker['SLV']['ppo'] > 1.0) or self.ticker['SLV']['rsi'] < 20
-            else:
-                ma_below = self.ticker[symbol]['price'] < self.ticker[symbol]['ma'] * self.ticker[symbol]['ma_lower']
-                ma_above = self.ticker[symbol]['price'] >= self.ticker[symbol]['ma'] * self.ticker[symbol]['ma_upper']
-
-            # logic to determine if we need to move completely in or out of an ETF base on moving average
-            if (ma_below and self.ma_above[symbol]): # if we fall below MA after being above threshold then set allocation to 0
-                self.target_update[symbol] = 0
-                self.ma_above[symbol] = False
-                rebalance_ma = True
-                # print(date + ' price: ' + str(self.ticker['SPY']['price']) + ' ma: ' + str(self.ticker['SPY']['ma']) + ' ppo: ' + str(self.ticker['SPY']['ppo']) + ' rsi: ' + str(self.ticker['SPY']['rsi']) + ' move below')
-            elif (ma_above and not self.ma_above[symbol]): # if we rise above MA after being below threshold then set allocation back to target
-                self.target_update[symbol] = self.target[symbol]
-                self.ma_above[symbol] = True
-                rebalance_ma = True
-                # print(date + ' price: ' + str(self.ticker['SPY']['price']) + ' ma: ' + str(self.ticker['SPY']['ma']) + ' ppo: ' + str(self.ticker['SPY']['ppo']) + ' rsi: ' + str(self.ticker['SPY']['rsi']) + ' move above')
+                if (risk_off and self.risk_on[symbol]):
+                    self.target_update[symbol] = 0
+                    self.risk_on[symbol] = False
+                    rebalance_ma = True
+                elif (risk_on and not self.risk_on[symbol]):
+                    self.target_update[symbol] = self.target[symbol]
+                    self.risk_on[symbol] = True
+                    rebalance_ma = True
 
         # update cash at broker
         cash = self.broker.getcash()
@@ -199,14 +164,21 @@ class Nirvana(bt.Strategy):
             if (data._name in self.target):
                 self.portfolio[data._name] = {'shares': self.broker.getposition(data).size, 'last_price': data.close[0]}
 
-        # check if any positions in portfolio are outside rebalancing bands using updated target allocations
-        rebalance_bands = self.rb.rebalance_check(cash, self.portfolio, self.target_update)
+        # check if portfolio need rebalancing based on time or bands
+        if (self.rebalance_days > 0):
+            if (self.count % self.rebalance_days == 0):
+                rebalance = True
+            else:
+                rebalance = False
+            self.count += 1
+        else:
+            rebalance = self.rb.rebalance_bands(cash, self.portfolio, self.target_update)
 
-        if (rebalance_bands or rebalance_ma or self.first_run):
-            print("rebalance_bands: " + str(rebalance_bands) + " rebalance_ma: " + str(rebalance_ma) + " (cash = " + str(cash) + ")")
+        if (rebalance or rebalance_ma or self.first_run):
+            print(date + ": " + str(self.target_update))
 
             # generate trades to rebalance back to the updated target allocation
-            trades = self.rb.rebalance(self.portfolio, self.target_update)
+            trades = self.rb.rebalance(cash, self.portfolio, self.target_update)
 
             # process sell orders
             for data in self.datas:
