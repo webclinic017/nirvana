@@ -20,6 +20,9 @@ tickers = [
     'QQQ',
     'QLD',
 
+    # Russell 2000
+    'IWM',
+
     # Emerging Markets
     'EET',
     'EEM',

@@ -80,6 +80,7 @@ class Nirvana(bt.Strategy):
             'QQQ':     {'enable': True,  'sym': 'QQQ',  'type': 'SMA_180', 'upper': 1.02, 'lower': 0.98},
             'QLD':     {'enable': True,  'sym': 'SPY',  'type': 'SMA_180', 'upper': 1.02, 'lower': 0.98},
             'TQQQ':    {'enable': True,  'sym': 'SPY',  'type': 'SMA_180', 'upper': 1.02, 'lower': 0.98},
+            'TNA':     {'enable': True,  'sym': 'IWM',  'type': 'SMA_180', 'upper': 1.02, 'lower': 0.98},
             'EEM':     {'enable': True,  'sym': 'EEM',  'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
             'TLT':     {'enable': True,  'sym': 'TLT',  'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
             'GBTC':    {'enable': True,  'sym': 'GBTC', 'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
