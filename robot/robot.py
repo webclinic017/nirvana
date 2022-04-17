@@ -13,6 +13,7 @@ import brokers
 
 class Robot:
     def __init__(self):
+        self.test = False
         with open('config.json', 'r') as f:
             config = json.load(f)
 
@@ -61,7 +62,7 @@ class Robot:
             for symbol in positions:
                 print('    ' + symbol + " : " + str(positions[symbol]['size']) + " shares")
 
-    def rebalance(self, args):
+    def rebalance(self):
         for account in self.robot_accounts:
             portfolio = {}
             print('Account: ' + account)
@@ -104,7 +105,7 @@ class Robot:
                         if shares < 1:
                             continue
 
-                        trade = self.broker.place_sell_order(account, symbol, shares, last_price, args.test)
+                        trade = self.broker.place_sell_order(account, symbol, shares, last_price, self.test)
                         trades.append(trade)
 
                 # monitor sell orders until complete before placing buy orders
@@ -121,7 +122,7 @@ class Robot:
                     if (orders[symbol]['action'] == 'BUY'):
                         cash = orders[symbol]['amount']
                         last_price = portfolio[symbol]['last_price']
-                        trade = self.broker.place_buy_order(account, symbol, cash, last_price, args.test)
+                        trade = self.broker.place_buy_order(account, symbol, cash, last_price, self.test)
                         trades.append(trade)
 
     def disconnect(self):
@@ -147,11 +148,14 @@ def main(args=None):
     robot = Robot()
     robot.set_robot_accounts()
 
+    if (args.test):
+        robot.test = True
+
     if (args.positions):
         robot.print_positions()
 
     if (args.rebalance):
-        robot.rebalance(args)
+        robot.rebalance()
 
     robot.disconnect()
 
