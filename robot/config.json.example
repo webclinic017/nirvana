@@ -4,16 +4,10 @@
         "DU4980388": {
             "desc": "IB Test Account",
             "email": "seekingsharpe@googlegroups.com",
-            "portfolio": [
-                {
-                    "symbol": "GBTC",
-                    "percentage": 50.0
-                },
-                {
-                    "symbol": "TSLA",
-                    "percentage": 50.0
-                }
-            ]
+            "portfolio": {
+                "TSLA": 50.0,
+                "GBTC": 50.0
+            }
         }
     },
     "rules": {

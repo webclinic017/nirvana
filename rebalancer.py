@@ -15,9 +15,6 @@ class Rebalancer:
         relative_rebalance = False
 
         for position in current:
-            if target[position] == 0:
-                continue
-
             current[position]['percent'] = current[position]['value'] / account_value
             deviation = abs(current[position]['percent'] - target[position] / 100)
 

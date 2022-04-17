@@ -58,9 +58,10 @@ class Robot:
             print('  xxxxx' + account[5:] + ' ' + self.robot_accounts[account]['desc'])
             print('    ' + 'cash = ' + str(self.robot_accounts[account]['total_cash']))
             positions = self.broker.get_positions(account)
-            print(positions)
+            for symbol in positions:
+                print('    ' + symbol + " : " + str(positions[symbol]['size']) + " shares")
 
-    def rebalance(self):
+    def rebalance(self, args):
         for account in self.robot_accounts:
             portfolio = {}
             print('Account: ' + account)
@@ -68,18 +69,18 @@ class Robot:
 
             # update portfolio holdings at broker
             positions = self.broker.get_positions(account)
-            #[Position(account='DU4980388', 
-            # contract=Stock(conId=349966059, symbol='GBTC', exchange='PINK', currency='USD', localSymbol='GBTC', tradingClass='PRIMQX'), 
-            # position=100.0, avgCost=28.45)]
-            for position in positions:
-                symbol = position.contract.symbol
-                size = position.position
-                print(self.broker.get_historical_data(symbol))
+            for symbol in positions:
+                size = positions[symbol]['size']
                 if (symbol in self.robot_accounts[account]['portfolio']):
                     portfolio[symbol] = {'shares': size, 'last_price': self.broker.get_quote(symbol)}
 
-            cash = self.robot_accounts[account]['total_cash']
+            for symbol in self.robot_accounts[account]['portfolio']:
+                if symbol not in portfolio:
+                    portfolio[symbol] = {'shares': 0, 'last_price': self.broker.get_quote(symbol)}
+
             print(portfolio)
+            cash = self.robot_accounts[account]['total_cash']
+
             # TODO: update target allocations based on rules
 
             rb = rebalancer.Rebalancer(absolute_deviation_limit = 0.05, relative_deviation_limit = 0.25)
@@ -88,28 +89,40 @@ class Robot:
             rebalance_bands = rb.rebalance_bands(cash, portfolio, self.robot_accounts[account]['portfolio'])
 
             if (rebalance_bands):
-                # generate trades to rebalance back to the updated target allocation
-                trades = rb.rebalance(cash, portfolio, self.robot_accounts[account]['portfolio'])
+                # generate orders to rebalance back to the updated target allocation
+                orders = rb.rebalance(cash, portfolio, self.robot_accounts[account]['portfolio'])
 
                 # process sell orders
-                for symbol in trades:
-                    if (trades[symbol]['action'] == 'SELL'):
-                        shares = int(math.ceil(trades[symbol]['amount'] / portfolio[symbol]['last_price']))
+                trades = []
+                for symbol in orders:
+                    if (orders[symbol]['action'] == 'SELL'):
+                        last_price = portfolio[symbol]['last_price']
+
+                        shares = int(math.ceil(trades[symbol]['amount'] / last_price))
                         if shares > portfolio[symbol]['shares']:
                             shares = int(portfolio[symbol]['shares'])
                         if shares < 1:
                             continue
-                        self.broker.place_sell_order(account, symbol, shares, args.test)
 
-                # TODO: monitor sell orders until complete before placing buy orders
+                        trade = self.broker.place_sell_order(account, symbol, shares, last_price, args.test)
+                        trades.append(trade)
+
+                # monitor sell orders until complete before placing buy orders
+                trades_pending = True
+                while trades_pending:
+                    trades_pending = False
+                    for trade in trades:
+                        if not trade.isDone():
+                            trades_pending = True
 
                 # process buy orders
-                for symbol in trades:
-                    if (trades[symbol]['action'] == 'BUY'):
-                        shares = int(math.floor(trades[symbol]['amount'] / portfolio[symbol]['last_price']))
-                        if shares == 0:
-                            continue
-                        self.broker.place_buy_order(account, symbol, shares, args.test)
+                trades = []
+                for symbol in orders:
+                    if (orders[symbol]['action'] == 'BUY'):
+                        cash = orders[symbol]['amount']
+                        last_price = portfolio[symbol]['last_price']
+                        trade = self.broker.place_buy_order(account, symbol, cash, last_price, args.test)
+                        trades.append(trade)
 
     def disconnect(self):
         self.broker.disconnect()
@@ -119,6 +132,7 @@ def parse_args(pargs=None):
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='Robot Trader')
 
+    parser.add_argument('-r', '--rebalance', action='store_true', help='Print portfolio positions')
     parser.add_argument('--positions', action='store_true', help='Print portfolio positions')
     parser.add_argument('--test', action='store_true', help='Test mode')
 
@@ -136,7 +150,8 @@ def main(args=None):
     if (args.positions):
         robot.print_positions()
 
-    robot.rebalance()
+    if (args.rebalance):
+        robot.rebalance(args)
 
     robot.disconnect()
 
