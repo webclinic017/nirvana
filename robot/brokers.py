@@ -61,10 +61,12 @@ class TDAmeritrade():
 class InteractiveBrokers():
     def __init__(self):
         self.ib = IB()
-        self.ib.connect('127.0.0.1', 7497, clientId=1)
+        self.connect()
 
     def connect(self):
-        self.ib.connect('127.0.0.1', 7497, clientId=1)
+        # gateway: port 4001 (live), port 4002 (paper)
+        #     tws: port 7496 (live), port 7497 (paper)
+        self.ib.connect('127.0.0.1', port=7497, clientId=1)
     
     def disconnect(self):
         self.ib.disconnect()
@@ -88,27 +90,22 @@ class InteractiveBrokers():
 
     def get_available_cash(self, account):
         avs = self.ib.accountValues(account)
-
         for i in range(len(avs)):
-            if avs[i].tag == "AvailableFunds":
-                available_funds = float(avs[i].value)
-        return available_funds
+            if avs[i].tag == "TotalCashBalance" and avs[i].currency == "USD":
+                available_cash = float(avs[i].value)
+        return available_cash
 
     def get_quote(self, symbol):
         contract = Stock(symbol=symbol, exchange='SMART', currency='USD')
         self.ib.qualifyContracts(contract)
+        self.ib.reqMarketDataType(2) # 2 = Frozen
+        data = self.ib.reqMktData(contract, symbol, snapshot=True, regulatorySnapshot=False)
 
-        # data = self.ib.reqMktData(contract, symbol, snapshot=True, regulatorySnapshot=False)
+        # TODO: add timeout or max attempts
+        while util.isNan(data.last):
+            self.ib.sleep(0.1)
 
-        # # TODO: add timeout or max attempts
-        # while (util.isNan(data.last)):
-        #     self.ib.sleep(0.1)
-
-        # return data.last
-
-        df = self.get_historical_data(symbol, duration='1 D', bar_size ='1 day')
-
-        return df.close.iloc[-1]
+        return data.marketPrice()
 
     def get_historical_data(self, symbol, duration='200 D', bar_size = '1 day'):
         contract = Stock(symbol=symbol, exchange='SMART', currency='USD')
@@ -122,8 +119,6 @@ class InteractiveBrokers():
                 useRTH=False,
                 formatDate=1)
         df = util.df(bars)
-
-        print("current price:", df.close.iloc[-1])
 
         return df
 
@@ -165,3 +160,12 @@ class InteractiveBrokers():
             return
 
         return self.ib.placeOrder(contract, order)
+
+    def wait_for_trades(self, trades):
+        trades_pending = True
+        while trades_pending:
+            trades_pending = False
+            for trade in trades:
+                if not trade.isDone():
+                    trades_pending = True
+                self.ib.sleep(0.1)

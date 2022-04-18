@@ -9,22 +9,25 @@ import pprint
 
 sys.path.insert(0, '..')
 import rebalancer
+import rules
 import brokers
 
 class Robot:
     def __init__(self):
         self.test = False
-        with open('config.json', 'r') as f:
-            config = json.load(f)
-
-        self.configured_accounts = config['accounts']
-
         self.robot_accounts = {}
+        with open('config.json', 'r') as f:
+            self.config = json.load(f)
 
-        if config['broker'] == 'InteractiveBrokers':
+        self.configured_accounts = self.config['accounts']
+
+        if self.config['broker'] == 'InteractiveBrokers':
             self.broker = brokers.InteractiveBrokers()
-        elif config['broker'] == 'TDAmeritrade':
+        elif self.config['broker'] == 'TDAmeritrade':
             self.broker = brokers.TDAmeritrade()
+
+        self.rp = rules.RulesProcessor(self.broker, self.config['rules'])
+        self.rb = rebalancer.Rebalancer(absolute_deviation_limit = 0.05, relative_deviation_limit = 0.25)
 
     def set_robot_accounts(self):
         broker_accounts = self.broker.get_managed_accounts()
@@ -82,16 +85,16 @@ class Robot:
             print(portfolio)
             cash = self.robot_accounts[account]['total_cash']
 
-            # TODO: update target allocations based on rules
-
-            rb = rebalancer.Rebalancer(absolute_deviation_limit = 0.05, relative_deviation_limit = 0.25)
+            # update target allocations based on rules
+            self.rp.update_historical_data()
+            target = self.rp.apply_rules(portfolio, self.robot_accounts[account]['portfolio'])
 
             # check if any positions in portfolio are outside rebalancing bands using updated positions and target allocations
-            rebalance_bands = rb.rebalance_bands(cash, portfolio, self.robot_accounts[account]['portfolio'])
+            rebalance_bands = self.rb.rebalance_bands(cash, portfolio, target)
 
             if (rebalance_bands):
                 # generate orders to rebalance back to the updated target allocation
-                orders = rb.rebalance(cash, portfolio, self.robot_accounts[account]['portfolio'])
+                orders = self.rb.rebalance(cash, portfolio, target)
 
                 # process sell orders
                 trades = []
@@ -99,22 +102,18 @@ class Robot:
                     if (orders[symbol]['action'] == 'SELL'):
                         last_price = portfolio[symbol]['last_price']
 
-                        shares = int(math.ceil(trades[symbol]['amount'] / last_price))
+                        shares = int(math.ceil(orders[symbol]['amount'] / last_price))
                         if shares > portfolio[symbol]['shares']:
                             shares = int(portfolio[symbol]['shares'])
                         if shares < 1:
                             continue
 
                         trade = self.broker.place_sell_order(account, symbol, shares, last_price, self.test)
-                        trades.append(trade)
+                        if (trade):
+                            trades.append(trade)
 
-                # monitor sell orders until complete before placing buy orders
-                trades_pending = True
-                while trades_pending:
-                    trades_pending = False
-                    for trade in trades:
-                        if not trade.isDone():
-                            trades_pending = True
+                # wait until sell orders complete before placing buy orders
+                self.broker.wait_for_trades(trades)
 
                 # process buy orders
                 trades = []
@@ -123,7 +122,8 @@ class Robot:
                         cash = orders[symbol]['amount']
                         last_price = portfolio[symbol]['last_price']
                         trade = self.broker.place_buy_order(account, symbol, cash, last_price, self.test)
-                        trades.append(trade)
+                        if (trade):
+                            trades.append(trade)
 
     def disconnect(self):
         self.broker.disconnect()
@@ -135,7 +135,7 @@ def parse_args(pargs=None):
 
     parser.add_argument('-r', '--rebalance', action='store_true', help='Print portfolio positions')
     parser.add_argument('--positions', action='store_true', help='Print portfolio positions')
-    parser.add_argument('--test', action='store_true', help='Test mode')
+    parser.add_argument('-t', '--test', action='store_true', help='Test mode')
 
     if pargs is not None:
         return parser.parse_args(pargs)
