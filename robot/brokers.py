@@ -1,11 +1,62 @@
 import math
 import pprint
 
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+
+from tda.auth import easy_client
+from tda import client
+from tda.orders.equities import equity_buy_limit, equity_sell_limit
+from tda.orders.common import Duration, Session
+from tda.utils import Utils
+
 from ib_insync import IB, LimitOrder, Stock, util
 
+def chrome_webdriver():
+    options = Options()
+    # options.headless = True
+    return webdriver.Chrome(options=options)
+
 class TDAmeritrade():
-    def __init__(self):
-        self.tda = None
+    def __init__(self, api_key=None):
+        self.tda = easy_client(
+            webdriver_func=chrome_webdriver,
+            api_key=api_key,
+            redirect_uri='https://localhost',
+            token_path='/media/secret/token.pickle')
+
+    def connect(self):
+        pass
+
+    def disconnect(self):
+        pass
+
+    def get_managed_accounts(self):
+        pass
+
+    def get_account_summary(self, account):
+        pass
+
+    def get_positions(self, account):
+        pass
+
+    def get_available_cash(self, account):
+        pass
+
+    def get_quote(self, symbol):
+        pass
+
+    def get_historical_data(self, symbol, duration='200 D', bar_size = '1 day'):
+        pass
+
+    def get_open_trades(self):
+        pass
+
+    def place_buy_order(self, account, symbol, cash, price, test=False):
+        pass
+
+    def place_sell_order(self, account, symbol, shares, last_price, test=False):
+        pass
 
 class InteractiveBrokers():
     def __init__(self):
