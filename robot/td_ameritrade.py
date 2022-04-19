@@ -4,7 +4,6 @@ import time
 import pandas as pd
 
 from tda.auth import easy_client
-from tda import client
 from tda.client import Client
 from tda.orders.equities import equity_buy_limit, equity_sell_limit
 from tda.orders.common import Duration, Session
@@ -50,9 +49,9 @@ class TDAmeritrade():
         pass
 
     def get_positions(self, account):
-        info = self.tda.get_account(account_id=account, fields=[self.tda.Account.Fields.POSITIONS])
-        assert info.status_code == 200, info.raise_for_status()
-        info = info.json()
+        r = self.tda.get_account(account_id=account, fields=[self.tda.Account.Fields.POSITIONS])
+        assert r.status_code == 200, r.raise_for_status()
+        info = r.json()
 
         positions_dict = {}
         if 'positions' in info['securitiesAccount']:
@@ -70,7 +69,8 @@ class TDAmeritrade():
         attempts = 3
         while (attempts > 0):
             try:
-                price = self.tda.get_quote(symbol).json()[symbol]['lastPrice']
+                r = self.tda.get_quote(symbol)
+                price = r.json()[symbol]['lastPrice']
                 break
             except:
                 attempts -= 1
@@ -81,14 +81,14 @@ class TDAmeritrade():
         return price
 
     def get_historical_data(self, symbol, duration='200 D', bar_size = '1 day'):
-        resp = self.tda.get_price_history(symbol,
+        r = self.tda.get_price_history(symbol,
                 period_type=Client.PriceHistory.PeriodType.YEAR,
                 period=Client.PriceHistory.Period.ONE_YEAR,
                 frequency_type=Client.PriceHistory.FrequencyType.DAILY,
                 frequency=Client.PriceHistory.Frequency.DAILY)
-        assert resp.status_code == 200
-        data = resp.json()
-        df = pd.json_normalize(data['candles'])
+        assert r.status_code == 200
+
+        df = pd.json_normalize(r.json()['candles'])
 
         return df
 
