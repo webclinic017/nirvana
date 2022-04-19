@@ -10,7 +10,8 @@ import pprint
 sys.path.insert(0, '..')
 import rebalancer
 import rules
-import brokers
+from td_ameritrade import TDAmeritrade
+from interactive_brokers import InteractiveBrokers
 
 class Robot:
     def __init__(self):
@@ -22,9 +23,9 @@ class Robot:
         self.configured_accounts = self.config['accounts']
 
         if self.config['broker'] == 'InteractiveBrokers':
-            self.broker = brokers.InteractiveBrokers()
+            self.broker = InteractiveBrokers()
         elif self.config['broker'] == 'TDAmeritrade':
-            self.broker = brokers.TDAmeritrade(api_key=self.config['api_key'])
+            self.broker = TDAmeritrade(api_key=self.config['api_key'])
 
         self.rp = rules.RulesProcessor(self.broker, self.config['rules'])
         self.rb = rebalancer.Rebalancer(absolute_deviation_limit = 0.05, relative_deviation_limit = 0.25)

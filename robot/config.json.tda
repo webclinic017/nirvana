@@ -1,0 +1,18 @@
+{
+    "broker": "TDAmeritrade",
+    "api_key": "",
+    "accounts": {
+        "xxxxxxxxx": {
+            "desc": "TDA Test Account",
+            "email": "seekingsharpe@googlegroups.com",
+            "portfolio": {
+                "TSLA": 25.0,
+                "GBTC": 75.0
+            }
+        }
+    },
+    "rules": {
+        "GBTC":    {"enable": true, "sym": "GBTC", "type": "SMA_180",  "upper": 1.01, "lower": 0.99},
+        "TSLA":    {"enable": true,  "sym": "SPY",  "type": "SMA_180", "upper": 1.04, "lower": 0.95}
+    }
+}
