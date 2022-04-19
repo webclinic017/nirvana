@@ -24,7 +24,7 @@ class Robot:
         if self.config['broker'] == 'InteractiveBrokers':
             self.broker = brokers.InteractiveBrokers()
         elif self.config['broker'] == 'TDAmeritrade':
-            self.broker = brokers.TDAmeritrade()
+            self.broker = brokers.TDAmeritrade(api_key=self.config['api_key'])
 
         self.rp = rules.RulesProcessor(self.broker, self.config['rules'])
         self.rb = rebalancer.Rebalancer(absolute_deviation_limit = 0.05, relative_deviation_limit = 0.25)
