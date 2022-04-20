@@ -47,7 +47,7 @@ class InteractiveBrokers():
         data = self.ib.reqMktData(contract, symbol, snapshot=True, regulatorySnapshot=False)
 
         # TODO: add timeout or max attempts
-        while util.isNan(data.last):
+        while util.isNan(data.close):
             self.ib.sleep(0.1)
 
         return data.marketPrice()
