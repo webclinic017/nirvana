@@ -1,9 +1,6 @@
-import os
 import sys
 import math
-import time
 import argparse
-import asyncio
 import json
 import pprint
 
@@ -127,6 +124,7 @@ class Robot:
                     if (orders[symbol]['action'] == 'BUY'):
                         cash = orders[symbol]['amount']
                         last_price = portfolio[symbol]['last_price']
+
                         trade = self.broker.place_buy_order(account, symbol, cash, last_price, self.test)
                         if (trade):
                             trades.append(trade)
