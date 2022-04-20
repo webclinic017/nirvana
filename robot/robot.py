@@ -27,7 +27,7 @@ class Robot:
         elif self.config['broker'] == 'TDAmeritrade':
             self.broker = TDAmeritrade(api_key=self.config['api_key'])
 
-        self.rp = rules.RulesProcessor(self.broker, self.config['rules'])
+        self.rp = rules.RulesProcessor(self.broker)
         self.rb = rebalancer.Rebalancer(absolute_deviation_limit = 0.05, relative_deviation_limit = 0.25)
 
     def set_robot_accounts(self):
@@ -38,6 +38,7 @@ class Robot:
                 desc = self.configured_accounts[account]['desc']
                 email = self.configured_accounts[account]['email']
                 portfolio = self.configured_accounts[account]['portfolio']
+                rules = self.configured_accounts[account]['rules']
                 if 'cash_reserve' in self.configured_accounts[account]:
                     cash_reserve = self.configured_accounts[account]['cash_reserve']
                 else:
@@ -53,6 +54,7 @@ class Robot:
                     'desc': desc,
                     'email': email,
                     'portfolio': portfolio,
+                    'rules': rules,
                     'total_cash': total_cash
                 }
             else:
@@ -87,8 +89,7 @@ class Robot:
             cash = self.robot_accounts[account]['total_cash']
 
             # update target allocations based on rules
-            self.rp.update_historical_data()
-            target = self.rp.apply_rules(portfolio, self.robot_accounts[account]['portfolio'])
+            target = self.rp.apply_rules(self.robot_accounts[account]['rules'], portfolio, self.robot_accounts[account]['portfolio'])
 
             # check if any positions in portfolio are outside rebalancing bands using updated positions and target allocations
             rebalance_bands = self.rb.rebalance_bands(cash, portfolio, target)

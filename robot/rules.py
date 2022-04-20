@@ -2,26 +2,27 @@ import pprint
 import ta
 
 class RulesProcessor():
-    def __init__(self, broker, rules):
+    def __init__(self, broker):
         self.broker = broker
-        self.rules = rules
         self.historical_data = {}
 
-    def update_historical_data(self):
-        for symbol in self.rules:
-            for symbol in self.rules:
-                rules_symbol = self.rules[symbol]['sym']
-                if rules_symbol not in self.historical_data and self.rules[symbol]['enable']:
+    def update_historical_data(self, rules):
+        for symbol in rules:
+            for symbol in rules:
+                rules_symbol = rules[symbol]['sym']
+                if rules[symbol]['enable'] and rules_symbol not in self.historical_data:
                     self.historical_data[rules_symbol] = self.broker.get_historical_data(rules_symbol, duration='200 D', bar_size = '1 day')
 
-    def apply_rules(self, portfolio, allocations):
+    def apply_rules(self, rules, portfolio, allocations):
+        self.update_historical_data(rules)
+
         target = {}
         for symbol in allocations:
-            if symbol in self.rules and self.rules[symbol]['enable']:
-                rules_symbol = self.rules[symbol]['sym']
-                ma_type, window = self.rules[symbol]['type'].split('_')
-                upper = self.rules[symbol]['upper']
-                lower = self.rules[symbol]['lower']
+            if symbol in rules and rules[symbol]['enable']:
+                rules_symbol = rules[symbol]['sym']
+                ma_type, window = rules[symbol]['type'].split('_')
+                upper = rules[symbol]['upper']
+                lower = rules[symbol]['lower']
 
                 df = self.historical_data[rules_symbol]
                 

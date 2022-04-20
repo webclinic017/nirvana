@@ -7,11 +7,11 @@
             "portfolio": {
                 "TSLA": 50.0,
                 "GBTC": 50.0
+            },
+            "rules": {
+                "GBTC":    {"enable": false, "sym": "GBTC", "type": "SMA_50",  "upper": 1.01, "lower": 0.96},
+                "TSLA":    {"enable": true,  "sym": "SPY",  "type": "SMA_100", "upper": 1.01, "lower": 0.99}
             }
         }
-    },
-    "rules": {
-        "GBTC":    {"enable": false, "sym": "GBTC", "type": "SMA_50",  "upper": 1.01, "lower": 0.96},
-        "TSLA":    {"enable": true,  "sym": "SPY",  "type": "SMA_100", "upper": 1.01, "lower": 0.99}
     }
 }
