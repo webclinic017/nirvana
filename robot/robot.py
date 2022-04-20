@@ -69,29 +69,33 @@ class Robot:
                 print('    ' + symbol + " : " + str(positions[symbol]['size']) + " shares")
 
     def rebalance(self):
+
         for account in self.robot_accounts:
-            portfolio = {}
             print('Account: ' + account)
             pprint.pprint(self.robot_accounts[account])
+
+            cash = self.robot_accounts[account]['total_cash']
+            allocations = self.robot_accounts[account]['portfolio']
+            rules = self.robot_accounts[account]['rules']
+            portfolio = {}
 
             # update portfolio holdings at broker
             positions = self.broker.get_positions(account)
             for symbol in positions:
                 size = positions[symbol]['size']
-                if (symbol in self.robot_accounts[account]['portfolio']):
+                if (symbol in allocations):
                     portfolio[symbol] = {'shares': size, 'last_price': self.broker.get_quote(symbol)}
 
-            for symbol in self.robot_accounts[account]['portfolio']:
+            for symbol in allocations:
                 if symbol not in portfolio:
                     portfolio[symbol] = {'shares': 0, 'last_price': self.broker.get_quote(symbol)}
 
             print(portfolio)
-            cash = self.robot_accounts[account]['total_cash']
 
-            # update target allocations based on rules
-            target = self.rp.apply_rules(self.robot_accounts[account]['rules'], portfolio, self.robot_accounts[account]['portfolio'])
+            # generate target allocations based on rules
+            target = self.rp.apply_rules(rules, portfolio, allocations)
 
-            # check if any positions in portfolio are outside rebalancing bands using updated positions and target allocations
+            # check if any positions in portfolio need rebalancings
             rebalance_bands = self.rb.rebalance_bands(cash, portfolio, target)
 
             if (rebalance_bands):
