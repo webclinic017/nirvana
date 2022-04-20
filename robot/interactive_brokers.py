@@ -81,7 +81,7 @@ class InteractiveBrokers():
         contract = Stock(symbol, 'SMART', 'USD')
         self.ib.qualifyContracts(contract)
         order = LimitOrder('BUY', shares, limit_price, account=account, tif='GTC', outsideRth=True)
-        pprint.pprint(order)
+        print(symbol + ": " + str(order))
 
         if (test):
             return
@@ -99,7 +99,7 @@ class InteractiveBrokers():
         self.ib.qualifyContracts(contract)
 
         order = LimitOrder('SELL', shares, limit_price, account=account, tif='GTC', outsideRth=True)
-        pprint.pprint(order)
+        print(symbol + ": " + str(order))
 
         if (test):
             return
