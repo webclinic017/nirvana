@@ -106,10 +106,11 @@ class Robot:
                         last_price = portfolio[symbol]['last_price']
 
                         shares = int(math.ceil(orders[symbol]['amount'] / last_price))
-                        if shares > portfolio[symbol]['shares']:
-                            shares = int(portfolio[symbol]['shares'])
-                        if shares < 1:
-                            continue
+
+                        if (target[symbol] == 0): # sell all shares if target is 0 percent
+                            shares = portfolio[symbol]['shares']
+                        elif shares > portfolio[symbol]['shares']:
+                            shares = portfolio[symbol]['shares']
 
                         trade = self.broker.place_sell_order(account, symbol, shares, last_price, self.test)
                         if (trade):
