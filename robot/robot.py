@@ -76,20 +76,21 @@ class Robot:
             rules = self.robot_accounts[account]['rules']
             portfolio = {}
 
-            # update portfolio holdings at broker
+            # download positions from brokerage
             positions = self.broker.get_positions(account)
             for symbol in positions:
                 size = positions[symbol]['size']
                 if (symbol in allocations):
                     portfolio[symbol] = {'shares': size, 'last_price': self.broker.get_quote(symbol)}
 
+            # add symbols that don't exist at brokerage
             for symbol in allocations:
                 if symbol not in portfolio:
                     portfolio[symbol] = {'shares': 0, 'last_price': self.broker.get_quote(symbol)}
 
             print(portfolio)
 
-            # generate target allocations based on rules
+            # apply rules to determine target allocations
             target = self.rp.apply_rules(rules, portfolio, allocations)
 
             # check if any positions in portfolio need rebalancings
