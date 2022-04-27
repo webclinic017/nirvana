@@ -152,15 +152,24 @@ class TDAmeritrade():
             order_id = Utils(self.tda, account).extract_order_id(r)
         except:
             return -1
-        r = self.tda.get_order(order_id, account)
+        order_info = self.get_order(order_id, account)
 
-        pprint.pprint(r.json())
+        return order_info
+
+    def get_order(self, order_id, account):
+        r = self.tda.get_order(order_id, account)
         order_info = r.json()
-        order_info['accountId'] = 'xxxxx' + str(order_info['accountId'])[5:]
-        order_info.pop('tag', None)
-        pprint.pprint(order_info)
 
         return order_info
 
     def wait_for_trades(self, trades):
-        pass
+        trades_pending = True
+        while trades_pending:
+            trades_pending = False
+            for trade in trades:
+                account = trade['accountId']
+                order_id = trade['orderId']
+                order_info = self.get_order(order_id, account)
+                if order_info['status'] != Client.Order.Status.FILLED:
+                    trades_pending = True
+                time.sleep(0.1)
