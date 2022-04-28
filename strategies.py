@@ -34,7 +34,6 @@ class Nirvana(bt.Strategy):
         ('d', 0.0),
         ('optimizer', False),
         ('portfolio', {}),
-        ('tearsheet', False),
         ('args', None)
     )
 
@@ -46,13 +45,14 @@ class Nirvana(bt.Strategy):
         self.dataclose = self.datas[0].close
         self.order = None
 
+        self.addcash_period, self.addcash_amount = self.p.args.addcash.split('/')
         if not self.p.optimizer:
             self.rows = []
             self.rows.append("Date,Transaction,Symbol,Shares,Price")
 
         self.count = 1
         self.first_run = True
-        if (self.p.tearsheet):
+        if (self.p.args.tearsheet):
             self.portvalue = self.broker.getvalue()
             self.gains = []
             self.dates = []
@@ -79,14 +79,17 @@ class Nirvana(bt.Strategy):
             'SPXL':    {'enable': True,  'sym': 'SPY',  'type': 'SMA_180', 'upper': 1.04, 'lower': 0.95},
             'QQQ':     {'enable': True,  'sym': 'QQQ',  'type': 'SMA_180', 'upper': 1.02, 'lower': 0.98},
             'QLD':     {'enable': True,  'sym': 'SPY',  'type': 'SMA_180', 'upper': 1.02, 'lower': 0.98},
-            'TQQQ':    {'enable': True,  'sym': 'SPY',  'type': 'SMA_180', 'upper': 1.02, 'lower': 0.98},
+            'TQQQ':    {'enable': True,  'sym': 'SPY',  'type': 'SMA_180', 'upper': 1.04, 'lower': 0.95},
             'TNA':     {'enable': True,  'sym': 'IWM',  'type': 'SMA_180', 'upper': 1.02, 'lower': 0.98},
-            'EEM':     {'enable': True,  'sym': 'EEM',  'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
+            'EEM':     {'enable': False,  'sym': 'EEM',  'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
             'TLT':     {'enable': True,  'sym': 'TLT',  'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
             'GBTC':    {'enable': True,  'sym': 'GBTC', 'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
             'ETHE':    {'enable': True,  'sym': 'ETHE', 'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
-            'GLD':     {'enable': True,  'sym': 'GLD',  'type': 'SMA_100', 'upper': 0.00, 'lower': 0.00},
-            'SLV':     {'enable': True,  'sym': 'SLV',  'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96}
+            'GLD':     {'enable': False, 'sym': 'GLD',  'type': 'SMA_200', 'upper': 1.01, 'lower': 0.95},
+            'SLV':     {'enable': False,  'sym': 'SLV',  'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
+            'ARKG':    {'enable': True,  'sym': 'ARKG',  'type': 'SMA_50', 'upper': 1.01, 'lower': 0.96},
+            'TSLA':    {'enable': True, 'sym': 'SPY',  'type': 'SMA_180', 'upper': 1.04, 'lower': 0.95},
+            'MSTR':    {'enable': True,  'sym': 'GBTC', 'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
         }
 
         # find all symbols needed for indicators
@@ -111,6 +114,23 @@ class Nirvana(bt.Strategy):
     def next(self):
         date_dt = self.datas[0].datetime.date(0)
         date = date_dt.strftime('%Y-%m-%d')
+        month = int(date_dt.strftime('%m'))
+        year = int(date_dt.strftime('%Y'))
+        if (self.first_run):
+            self.current_month = month
+            self.current_year = year
+
+        if (self.addcash_period == 'monthly'):
+            if (self.current_month != month):
+                self.current_month = month
+                self.broker.add_cash(int(self.addcash_amount))
+        elif (self.addcash_period == 'yearly'):
+            if (self.current_year != year):
+                self.current_year = year
+                self.broker.add_cash(int(self.addcash_amount))
+        else:
+            print("Requires 'monthly' or 'yearly' for contribution period")
+            exit(0)
 
         # update daily closing price and moving average for indicators
         for symbol in self.ticker:
@@ -211,7 +231,7 @@ class Nirvana(bt.Strategy):
                             date, "%5s" % data._name,"%9d" % self.order.size, "%7.2f" % data.close[0]))
                         self.rows.append("{},{},{},{},{}".format(date, "BUY", data._name, self.order.size, data.close[0],))
 
-        if (self.p.tearsheet):
+        if (self.p.args.tearsheet):
             gain = (self.broker.getvalue() - self.portvalue) / self.portvalue
             self.gains.append(float(gain))
             self.dates.append(date)
@@ -220,7 +240,7 @@ class Nirvana(bt.Strategy):
         self.first_run = False
 
     def stop(self):
-        if (self.p.tearsheet):
+        if (self.p.args.tearsheet):
             df_performance = pd.DataFrame()
             df_performance.insert(0, "Date", self.dates)
             df_performance.insert(1, "Returns", self.gains)

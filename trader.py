@@ -91,7 +91,7 @@ def backtest(a, b, c, d, optimizer=False, args=None):
         cerebro.addstrategy(BuyHold, portfolio=portin)
     else:
         cerebro.addstrategy(Nirvana, a=a, b=b, c=c, d=d,
-            optimizer=optimizer, portfolio=portin, tearsheet=args.tearsheet, args=args)
+            optimizer=optimizer, portfolio=portin, args=args)
 
     cerebro.addsizer(LongOnly, portfolio=portin)
 
@@ -152,10 +152,8 @@ def parse_args(pargs=None):
     parser.add_argument('--portout', required=False, default=None, help='Portfolio ie. "TQQQ/50,SPXL/50"')
     parser.add_argument('--benchmark', required=False, default='SPY', help='Benchmark ticker to use')
     parser.add_argument('--setcash', required=False, default='100000', help='Starting cash available')
-    parser.add_argument('--addcash', required=False, default='monthly/0', help='Add cash periodically (ie, "montly/100" or "yearly/1000")')
+    parser.add_argument('--addcash', required=False, default='monthly/0', help='Add cash periodically (ie, "monthly/100" or "yearly/1000")')
     parser.add_argument('-t', '--tearsheet', action='store_true', help='Generate tearsheet (performance.html)')
-    parser.add_argument('-m', '--model', action='store_true', help='Trade TMF on 180-day moving average')
-    parser.add_argument('-s', '--seasonality', action='store_true', help='Skip buying in September')
 
     if pargs is not None:
         return parser.parse_args(pargs)
