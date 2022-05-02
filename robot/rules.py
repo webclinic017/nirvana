@@ -27,31 +27,37 @@ class RulesProcessor():
                 df = self.historical_data[rules_symbol]
                 
                 if ma_type == 'SMA':
-                    price = df['close'].iloc[-1]
                     ma = ta.trend.sma_indicator(df['close'], window=int(window), fillna=True).iloc[-1]
-                    ppo = ta.momentum.PercentagePriceOscillator(df['close'], window_slow = 26, window_fast = 12, window_sign = 9, fillna = False)
-                    ppo = ppo.ppo_hist().iloc[-1]
-                    rsi = ta.momentum.RSIIndicator(df['close'], window = 14, fillna = False).rsi().iloc[-1]
-                else:
-                    print(ma_type + "not supported")
+                elif ma_type == 'EMA':
+                    ma = ta.trend.ema_indicator(df['close'], window=int(window), fillna=True).iloc[-1]
 
-                risk_off = (
+                price = df['close'].iloc[-1]
+                ppo = ta.momentum.PercentagePriceOscillator(df['close'], window_slow = 26, window_fast = 12, window_sign = 9, fillna = False)
+                ppo = ppo.ppo_hist().iloc[-1]
+                rsi = ta.momentum.RSIIndicator(df['close'], window = 14, fillna = False).rsi().iloc[-1]
+                print(rules_symbol + ": Price=" + str(price) + " ma=" + str(ma) +
+                    " ppo=" + str(ppo) + " rsi=" + str(rsi))
+
+                risk_off_signal = (
                     price < ma * lower
                     and ppo < 0.75 
                     and rsi > 22
                 )
-                risk_on = (
+
+                risk_on_signal = (
                     price >= ma * upper
                     or ppo > 1.0
                     or rsi < 21
                 )
 
-                if (risk_off and portfolio[symbol]['shares'] > 0):
+                risk_on_position = False if portfolio[symbol]['shares'] == 0 else True
+
+                if risk_off_signal:
                     target[symbol] = 0
-                elif (risk_on and not portfolio[symbol]['shares'] == 0):
+                elif risk_on_signal or risk_on_position:
                     target[symbol] = allocations[symbol]
                 else:
-                    target[symbol] = allocations[symbol]
+                    target[symbol] = 0
 
             else:
                 target[symbol] = allocations[symbol]

@@ -22,6 +22,4 @@ while True:
     robot.rebalance()
     robot.disconnect()
 
-    wait_until_dt = next_market_close + datetime.timedelta(minutes=15)
-    print("Waiting until... " + str(wait_until_dt))
-    wait_until(wait_until_dt)
+    print("Finished rebalancing accounts.")
