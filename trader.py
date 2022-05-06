@@ -124,12 +124,13 @@ def backtest(a, b, c, d, optimizer=False, args=None):
 
     end_value = cerebro.broker.getvalue()
     max_drawdown = st0.analyzers.drawdown.get_analysis().max.drawdown
+    cagr = st0.analyzers.cagranalyzer.rets.cagr * 100
     start_date = st0.analyzers.cagranalyzer.rets.start_date
     end_date = st0.analyzers.cagranalyzer.rets.end_date
 
     if (optimizer == False):
-        print("\nend_value: " + "%.2f" % end_value + ", max_drawdown: " + "%.2f" % max_drawdown + 
-            "% [" + str(start_date) + " to " + str(end_date) + "]")
+        print("\nend_value: " + "%.2f" % end_value + ", max_drawdown: " + "%.2f" % max_drawdown +
+            "%, cagr: " + "%.2f" % cagr + "% [" + str(start_date) + " to " + str(end_date) + "]")
 
     if (args.plot and not optimizer):
         cerebro.plot()
