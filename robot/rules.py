@@ -35,8 +35,7 @@ class RulesProcessor():
                 ppo = ta.momentum.PercentagePriceOscillator(df['close'], window_slow = 26, window_fast = 12, window_sign = 9, fillna = False)
                 ppo = ppo.ppo_hist().iloc[-1]
                 rsi = ta.momentum.RSIIndicator(df['close'], window = 14, fillna = False).rsi().iloc[-1]
-                print(rules_symbol + ": Price=" + str(price) + " ma=" + str(ma) +
-                    " ppo=" + str(ppo) + " rsi=" + str(rsi))
+                print("{0:>7}: price={1:10.2f} ma={2:10.2f} ppo={3:6.2f} rsi={4:6.2f}".format(rules_symbol, price, ma, ppo, rsi))
 
                 risk_off_signal = (
                     price < ma * lower
