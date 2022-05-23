@@ -1,3 +1,7 @@
+import math
+import pandas as pd
+import ta
+
 def truncate(n, decimals=0):
     multiplier = 10 ** decimals
     print(multiplier)
