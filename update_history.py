@@ -65,7 +65,10 @@ tickers = [
     'GOOG',
     'AMZN',
     'CSCO',
-    'SQ'
+    'SQ',
+    'BTC-USD',
+    'ETH-USD',
+    'LUNA1-USD'
     ]
 
 def add_ta(df):

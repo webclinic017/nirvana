@@ -12,19 +12,7 @@ import rebalancer
 import quantstats as qs
 import ta
 qs.extend_pandas()
-
-def get_ma(history, type, window, date_dt, last_price):
-    date = date_dt.strftime('%Y-%m-%d')
-    history['Date'] = pd.to_datetime(history['Date']).dt.date
-    history = history[~(history['Date'] >= date_dt)]
-    history = history.append({'Date': date}, ignore_index=True)
-    history = history.set_index("Date")
-    history.loc[date]['Adj Close'] = last_price
-    sma = ta.trend.sma_indicator(history['Adj Close'], window=window, fillna=True)
-    history['SMA'] = sma
-    ma = history.loc[date]['SMA']
-
-    return ma
+from utils import round_down, round_up
 
 class Nirvana(bt.Strategy):
     params = (
@@ -83,13 +71,16 @@ class Nirvana(bt.Strategy):
             'TNA':     {'enable': True,  'sym': 'IWM',  'type': 'SMA_180', 'upper': 1.02, 'lower': 0.98},
             'EEM':     {'enable': False,  'sym': 'EEM',  'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
             'TLT':     {'enable': True,  'sym': 'TLT',  'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
-            'GBTC':    {'enable': True,  'sym': 'GBTC', 'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
-            'ETHE':    {'enable': True,  'sym': 'ETHE', 'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
             'GLD':     {'enable': False, 'sym': 'GLD',  'type': 'SMA_200', 'upper': 1.01, 'lower': 0.95},
             'SLV':     {'enable': False,  'sym': 'SLV',  'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
             'ARKG':    {'enable': True,  'sym': 'ARKG',  'type': 'SMA_50', 'upper': 1.01, 'lower': 0.96},
             'TSLA':    {'enable': True, 'sym': 'SPY',  'type': 'SMA_180', 'upper': 1.04, 'lower': 0.95},
             'MSTR':    {'enable': True,  'sym': 'GBTC', 'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
+            'GBTC':    {'enable': True,  'sym': 'GBTC', 'type': 'SMA_20', 'upper': 1.02, 'lower': 0.98},
+            'ETHE':    {'enable': True,  'sym': 'ETHE', 'type': 'SMA_20', 'upper': 1.02, 'lower': 0.98},
+            'BTC-USD': {'enable': True,  'sym': 'BTC-USD', 'type': 'SMA_20', 'upper': 1.02, 'lower': 0.98},
+            'ETH-USD': {'enable': True,  'sym': 'ETH-USD', 'type': 'SMA_20', 'upper': 1.02, 'lower': 0.98},
+            'LUNA1-USD': {'enable': True,  'sym': 'LUNA1-USD', 'type': 'SMA_20', 'upper': 1.02, 'lower': 0.98},
         }
 
         # find all symbols needed for indicators
@@ -204,13 +195,21 @@ class Nirvana(bt.Strategy):
             # process sell orders
             for data in self.datas:
                 if (data._name in trades and trades[data._name]['action'] == 'SELL'):
-                    size = math.ceil(trades[data._name]['amount'] / self.portfolio[data._name]['last_price'])
+                    size = trades[data._name]['amount'] / self.portfolio[data._name]['last_price']
+
+                    # round up to make sure we sell enough to cover our buys
+                    if data._name.endswith('-USD'):
+                        size = round_up(size, 2)
+                    else:
+                        size = round_up(size, 0)
+
                     if size > self.broker.getposition(data).size:
                         size = self.broker.getposition(data).size
-                    if int(size) < 1:
+
+                    if size == 0:
                         continue
 
-                    self.order = self.sell(data=data, size=int(size))
+                    self.order = self.sell(data=data, size=size)
 
                     if not self.p.optimizer:
                         print("{}: SELL {} {} shares at {}".format(
@@ -220,7 +219,14 @@ class Nirvana(bt.Strategy):
             # process buy orders
             for data in self.datas:
                 if (data._name in trades and trades[data._name]['action'] == 'BUY'):
-                    size = math.floor(trades[data._name]['amount'] / self.portfolio[data._name]['last_price'])
+                    size = trades[data._name]['amount'] / self.portfolio[data._name]['last_price']
+
+                    # round down to avoid using too much cash
+                    if data._name.endswith('-USD'):
+                        size = round_down(size, 2)
+                    else:
+                        size = round_down(size, 0)
+
                     if size == 0:
                         continue
 
