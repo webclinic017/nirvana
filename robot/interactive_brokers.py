@@ -41,31 +41,46 @@ class InteractiveBrokers():
         return available_cash
 
     def get_quote(self, symbol):
-        contract = Stock(symbol=symbol, exchange='SMART', currency='USD')
-        self.ib.qualifyContracts(contract)
-        self.ib.reqMarketDataType(2) # 2 = Frozen
-        data = self.ib.reqMktData(contract, symbol, snapshot=True, regulatorySnapshot=False)
+        while (True):
+            try:
+                contract = Stock(symbol=symbol, exchange='SMART', currency='USD')
+                self.ib.qualifyContracts(contract)
+                self.ib.reqMarketDataType(2) # 2 = Frozen
+                data = self.ib.reqMktData(contract, symbol, snapshot=True, regulatorySnapshot=False)
 
-        # TODO: add timeout or max attempts
-        while util.isNan(data.close):
-            self.ib.sleep(0.1)
+                mkt_data_attempts = 0
+                while (mkt_data_attempts < 10):
+                    if util.isNan(data.last):
+                        mkt_data_attempts += 1
+                        self.ib.sleep(0.1)
+                    else:
+                        print(data)
+                        return data.last
+            except Exception as e:
+                print(e)
 
-        return data.marketPrice()
+            print("Failed to get quote for %s. Trying again." % symbol)
 
     def get_historical_data(self, symbol, duration='200 D', bar_size = '1 day'):
-        contract = Stock(symbol=symbol, exchange='SMART', currency='USD')
-        self.ib.qualifyContracts(contract)
-        bars = self.ib.reqHistoricalData(
-                contract,
-                endDateTime='',
-                durationStr=duration,
-                barSizeSetting=bar_size,
-                whatToShow='MIDPOINT',
-                useRTH=False,
-                formatDate=1)
-        df = util.df(bars)
+        while (True):
+            try:
+                contract = Stock(symbol=symbol, exchange='SMART', currency='USD')
+                self.ib.qualifyContracts(contract)
+                bars = self.ib.reqHistoricalData(
+                        contract,
+                        endDateTime='',
+                        durationStr=duration,
+                        barSizeSetting=bar_size,
+                        whatToShow='MIDPOINT',
+                        useRTH=False,
+                        formatDate=1)
+                df = util.df(bars)
+                if df is not None:
+                    return df
+            except Exception as e:
+                print(e)
 
-        return df
+            print("Failed to download historical data for %s" % symbol)
 
     def get_open_trades(self):
         return self.ib.openTrades()
