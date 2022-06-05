@@ -93,7 +93,7 @@ class TDAmeritrade():
         return df
 
     def get_open_trades(self):
-        pass
+        return []
 
     def place_buy_order(self, account, symbol, cash, price, test=False):
         limit_price = price * 1.01
@@ -155,6 +155,9 @@ class TDAmeritrade():
         order_info = self.get_order(order_id, account)
 
         return order_info
+
+    def cancel_all_orders(self):
+        pass
 
     def get_order(self, order_id, account):
         r = self.tda.get_order(order_id, account)

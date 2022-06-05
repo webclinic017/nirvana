@@ -3,6 +3,7 @@ import math
 import argparse
 import json
 import pprint
+import time
 
 sys.path.insert(0, '..')
 import rebalancer
@@ -14,6 +15,7 @@ class Robot:
     def __init__(self):
         self.test = False
         self.robot_accounts = {}
+        self.completed_accounts = []
         with open('config.json', 'r') as f:
             self.config = json.load(f)
 
@@ -41,18 +43,12 @@ class Robot:
                 else:
                     cash_reserve = 0
 
-                available_cash = self.broker.get_available_cash(account)
-                if (cash_reserve > available_cash):
-                    total_cash = 0
-                else:
-                    total_cash = int((available_cash - cash_reserve) * 100) / 100 # 2 decimal places
-
                 self.robot_accounts[account] = {
                     'desc': desc,
                     'email': email,
                     'portfolio': portfolio,
                     'rules': rules,
-                    'total_cash': total_cash
+                    'cash_reserve': cash_reserve
                 }
             else:
                 print("Account " + str(account) + "is not configured for trading")
@@ -65,13 +61,39 @@ class Robot:
             for symbol in positions:
                 print('    ' + symbol + " : " + str(positions[symbol]['size']) + " shares")
 
-    def rebalance(self):
+    def rebalance(self, timeout=60):
+        expire = time.time() + timeout
+        while True:
+            try:
+                self.set_robot_accounts()
+                self.rebalance_all_accounts()
+                return 0
+            except Exception as e:
+                print(e)
 
+            if time.time() > expire:
+                print("Timeout trying to rebalance accounts")
+                return -1
+
+            print("Trying to rebalance accounts again")
+
+    def rebalance_all_accounts(self):
         for account in self.robot_accounts:
+            if account in self.completed_accounts:
+                continue
             print('Account: ' + account)
             pprint.pprint(self.robot_accounts[account])
 
-            cash = self.robot_accounts[account]['total_cash']
+            self.broker.cancel_all_orders()
+
+            self.broker.wait_for_trades(self.broker.get_open_trades())
+
+            available_cash = self.broker.get_available_cash(account)
+            cash_reserve = self.robot_accounts[account]['cash_reserve']
+            if (cash_reserve > available_cash):
+                cash = 0
+            else:
+                cash = int((available_cash - cash_reserve) * 100) / 100 # 2 decimal places
             allocations = self.robot_accounts[account]['portfolio']
             rules = self.robot_accounts[account]['rules']
             portfolio = {}
@@ -130,6 +152,11 @@ class Robot:
                         trade = self.broker.place_buy_order(account, symbol, cash, last_price, self.test)
                         if (trade):
                             trades.append(trade)
+
+                # wait until buy orders complete in case not enough funds
+                self.broker.wait_for_trades(trades)
+
+                self.completed_accounts.append(account)
 
     def disconnect(self):
         self.broker.disconnect()

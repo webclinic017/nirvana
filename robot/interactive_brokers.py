@@ -41,25 +41,31 @@ class InteractiveBrokers():
         return available_cash
 
     def get_quote(self, symbol):
-        while (True):
-            try:
-                contract = Stock(symbol=symbol, exchange='SMART', currency='USD')
-                self.ib.qualifyContracts(contract)
-                self.ib.reqMarketDataType(2) # 2 = Frozen
-                data = self.ib.reqMktData(contract, symbol, snapshot=True, regulatorySnapshot=False)
+        contract = Stock(symbol=symbol, exchange='SMART', currency='USD')
+        attempts = 0
+        while True:
+            contracts = self.ib.qualifyContracts(contract)
+            if (len(contracts) == 0):
+                attempts += 1
+                if attempts == 10:
+                    raise Exception("Failed to qualify contract for %s" % symbol)
+                self.ib.sleep(0.1)
+            else:
+                break
+        self.ib.reqMarketDataType(2) # 2 = Frozen
+        data = self.ib.reqMktData(contract, symbol, snapshot=True, regulatorySnapshot=False)
 
-                mkt_data_attempts = 0
-                while (mkt_data_attempts < 10):
-                    if util.isNan(data.last):
-                        mkt_data_attempts += 1
-                        self.ib.sleep(0.1)
-                    else:
-                        print(data)
-                        return data.last
-            except Exception as e:
-                print(e)
+        attempts = 0
+        while True:
+            if util.isNan(data.last):
+                attempts += 1
+                if attempts == 30:
+                    raise Exception("Failed to download last price for %s" % symbol)
+                self.ib.sleep(0.1)
+            else:
+                break
 
-            print("Failed to get quote for %s. Trying again." % symbol)
+        return data.last
 
     def get_historical_data(self, symbol, duration='200 D', bar_size = '1 day'):
         while (True):
@@ -121,11 +127,22 @@ class InteractiveBrokers():
 
         return self.ib.placeOrder(contract, order)
 
+    def cancel_all_orders(self):
+        self.ib.reqGlobalCancel()
+
+    # TODO: need to wait until all trades are filled not just done
     def wait_for_trades(self, trades):
-        trades_pending = True
-        while trades_pending:
+        attempts = 0
+        while True:
             trades_pending = False
             for trade in trades:
                 if not trade.isDone():
                     trades_pending = True
-                self.ib.sleep(0.1)
+
+            if not trades_pending:
+                break
+
+            attempts += 1
+            if attempts == 5:
+                raise Exception("Trades failed to execute in 5 seconds")
+            self.ib.sleep(1)
