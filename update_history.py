@@ -72,29 +72,20 @@ tickers = [
     ]
 
 def add_ta(df):
-    # classta.trend.MACD(close: pandas.core.series.Series, window_slow: int = 26, window_fast: int = 12, window_sign: int = 9, fillna: bool = False)
-    macd_diff = ta.trend.MACD(df['Adj Close']).macd_diff()
-    df['MACD_diff'] = macd_diff
+    # class ta.trend.MACD(close: pandas.core.series.Series, window_slow: int = 26, window_fast: int = 12, window_sign: int = 9, fillna: bool = False)
+    df['MACD_diff'] = ta.trend.MACD(df['Adj Close']).macd_diff()
     ppo = ta.momentum.PercentagePriceOscillator(df['Adj Close'], window_slow = 26, window_fast = 12, window_sign = 9, fillna = False)
     df['PPO'] = ppo.ppo_hist()
-    rsi = ta.momentum.RSIIndicator(df['Adj Close'], window = 14, fillna = False)
-    df['RSI'] = rsi.rsi()
-    sma_250 = ta.trend.sma_indicator(df['Adj Close'], window=250, fillna=True)
-    df['SMA_250'] = sma_250
-    sma_225 = ta.trend.sma_indicator(df['Adj Close'], window=225, fillna=True)
-    df['SMA_225'] = sma_225
-    sma_200 = ta.trend.sma_indicator(df['Adj Close'], window=200, fillna=True)
-    df['SMA_200'] = sma_200
-    sma_180 = ta.trend.sma_indicator(df['Adj Close'], window=180, fillna=True)
-    df['SMA_180'] = sma_180
-    sma_150 = ta.trend.sma_indicator(df['Adj Close'], window=150, fillna=True)
-    df['SMA_150'] = sma_150
-    sma_100 = ta.trend.sma_indicator(df['Adj Close'], window=100, fillna=True)
-    df['SMA_100'] = sma_100
-    sma_50 = ta.trend.sma_indicator(df['Adj Close'], window=50, fillna=True)
-    df['SMA_50'] = sma_50
-    sma_20 = ta.trend.sma_indicator(df['Adj Close'], window=20, fillna=True)
-    df['SMA_20'] = sma_20
+    df['RSI'] = ta.momentum.RSIIndicator(df['Adj Close'], window = 14, fillna = False).rsi()
+    df['SMA_20'] = ta.trend.sma_indicator(df['Adj Close'], window=20, fillna=True)
+    df['SMA_50'] = ta.trend.sma_indicator(df['Adj Close'], window=50, fillna=True)
+    df['SMA_100'] = ta.trend.sma_indicator(df['Adj Close'], window=100, fillna=True)
+    df['SMA_125'] = ta.trend.sma_indicator(df['Adj Close'], window=125, fillna=True)
+    df['SMA_150'] = ta.trend.sma_indicator(df['Adj Close'], window=150, fillna=True)
+    df['SMA_175'] = ta.trend.sma_indicator(df['Adj Close'], window=175, fillna=True)
+    df['SMA_200'] = ta.trend.sma_indicator(df['Adj Close'], window=200, fillna=True)
+    df['SMA_225'] = ta.trend.sma_indicator(df['Adj Close'], window=225, fillna=True)
+    df['SMA_250'] = ta.trend.sma_indicator(df['Adj Close'], window=250, fillna=True)
     atr = ta.volatility.AverageTrueRange(high=df['High'], low=df['Low'], close=df['Close'], fillna=True, window=14)
     df['ATR'] =  atr.average_true_range()
     # Supertrend

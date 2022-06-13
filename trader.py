@@ -72,8 +72,9 @@ def backtest(a, b, c, d, optimizer=False, args=None):
 
     tickers = []
     for ticker in portin:
-        if ticker not in tickers:
-            tickers.append(ticker)
+        ticker_name = ticker.split('--')[0] # deconstruct alias
+        if ticker_name not in tickers:
+            tickers.append(ticker_name)
 
     for ticker in portout:
         if ticker not in tickers:

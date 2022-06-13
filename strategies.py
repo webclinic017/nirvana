@@ -63,18 +63,23 @@ class Nirvana(bt.Strategy):
 
         # set moving average type and period plus upper and lower limits
         self.rules = {
-            'SPY':     {'enable': True,  'sym': 'SPY',  'type': 'SMA_180', 'upper': 1.03, 'lower': 0.97},
-            'SPXL':    {'enable': True,  'sym': 'SPY',  'type': 'SMA_180', 'upper': 1.04, 'lower': 0.95},
-            'QQQ':     {'enable': True,  'sym': 'QQQ',  'type': 'SMA_180', 'upper': 1.02, 'lower': 0.98},
-            'QLD':     {'enable': True,  'sym': 'SPY',  'type': 'SMA_180', 'upper': 1.02, 'lower': 0.98},
-            'TQQQ':    {'enable': True,  'sym': 'SPY',  'type': 'SMA_180', 'upper': 1.04, 'lower': 0.95},
-            'TNA':     {'enable': True,  'sym': 'IWM',  'type': 'SMA_180', 'upper': 1.02, 'lower': 0.98},
+            'SPY':     {'enable': True,  'sym': 'SPY',  'type': 'SMA_175', 'upper': 1.03, 'lower': 0.97},
+            'SPXL':    {'enable': True,  'sym': 'SPY',  'type': 'SMA_175', 'upper': 1.04, 'lower': 0.97},
+            'SPXL--125':    {'enable': True,  'sym': 'SPY',  'type': 'SMA_125', 'upper': 1.04, 'lower': 0.97},
+            'SPXL--150':    {'enable': True,  'sym': 'SPY',  'type': 'SMA_150', 'upper': 1.04, 'lower': 0.97},
+            'SPXL--175':    {'enable': True,  'sym': 'SPY',  'type': 'SMA_175', 'upper': 1.04, 'lower': 0.97},
+            'SPXL--200':    {'enable': True,  'sym': 'SPY',  'type': 'SMA_200', 'upper': 1.04, 'lower': 0.97},
+            'SPXL--225':    {'enable': True,  'sym': 'SPY',  'type': 'SMA_225', 'upper': 1.04, 'lower': 0.97},
+            'QQQ':     {'enable': True,  'sym': 'QQQ',  'type': 'SMA_175', 'upper': 1.02, 'lower': 0.98},
+            'QLD':     {'enable': True,  'sym': 'SPY',  'type': 'SMA_175', 'upper': 1.02, 'lower': 0.98},
+            'TQQQ':    {'enable': True,  'sym': 'SPY',  'type': 'SMA_175', 'upper': 1.04, 'lower': 0.95},
+            'TNA':     {'enable': True,  'sym': 'IWM',  'type': 'SMA_175', 'upper': 1.02, 'lower': 0.98},
             'EEM':     {'enable': False,  'sym': 'EEM',  'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
             'TLT':     {'enable': True,  'sym': 'TLT',  'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
             'GLD':     {'enable': False, 'sym': 'GLD',  'type': 'SMA_200', 'upper': 1.01, 'lower': 0.95},
             'SLV':     {'enable': False,  'sym': 'SLV',  'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
             'ARKG':    {'enable': True,  'sym': 'ARKG',  'type': 'SMA_50', 'upper': 1.01, 'lower': 0.96},
-            'TSLA':    {'enable': True, 'sym': 'SPY',  'type': 'SMA_180', 'upper': 1.04, 'lower': 0.95},
+            'TSLA':    {'enable': True, 'sym': 'SPY',  'type': 'SMA_175', 'upper': 1.04, 'lower': 0.95},
             'MSTR':    {'enable': True,  'sym': 'GBTC', 'type': 'SMA_100', 'upper': 1.01, 'lower': 0.96},
             'GBTC':    {'enable': True,  'sym': 'GBTC', 'type': 'SMA_20', 'upper': 1.02, 'lower': 0.98},
             'ETHE':    {'enable': True,  'sym': 'ETHE', 'type': 'SMA_20', 'upper': 1.02, 'lower': 0.98},
@@ -171,9 +176,18 @@ class Nirvana(bt.Strategy):
         # update cash at broker
         cash = self.broker.getcash()
 
+        # aggregate target positions from aliases
+        target_positions = {}
+        for target in self.target:
+            name = target.split('--')[0] # deconstruct alias
+            if name not in target_positions:
+                target_positions[name] = self.target_update[target]
+            else:
+                target_positions[name] += self.target_update[target]
+
         # update portfolio holdings from broker
         for data in self.datas:
-            if (data._name in self.target):
+            if (data._name in target_positions):
                 self.portfolio[data._name] = {'shares': self.broker.getposition(data).size, 'last_price': data.close[0]}
 
         # check if portfolio need rebalancing based on time or bands
@@ -184,13 +198,13 @@ class Nirvana(bt.Strategy):
                 rebalance = False
             self.count += 1
         else:
-            rebalance = self.rb.rebalance_bands(cash, self.portfolio, self.target_update)
+            rebalance = self.rb.rebalance_bands(cash, self.portfolio, target_positions)
 
         if (rebalance or rebalance_ma or self.first_run):
             print(date + ": " + str(self.target_update))
 
             # generate trades to rebalance back to the updated target allocation
-            trades = self.rb.rebalance(cash, self.portfolio, self.target_update)
+            trades = self.rb.rebalance(cash, self.portfolio, target_positions)
 
             # process sell orders
             for data in self.datas:
