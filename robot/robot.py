@@ -94,33 +94,44 @@ class Robot:
                 cash = 0
             else:
                 cash = int((available_cash - cash_reserve) * 100) / 100 # 2 decimal places
+
             allocations = self.robot_accounts[account]['portfolio']
             rules = self.robot_accounts[account]['rules']
             portfolio = {}
+
+            # apply rules to determine target allocations
+            target = self.rp.apply_rules(rules, allocations)
+
+            # aggregate target positions from target aliases
+            target_positions = {}
+            for alias in target:
+                name = alias.split('--')[0] # deconstruct alias
+                if name not in target_positions:
+                    target_positions[name] = target[alias]
+                else:
+                    target_positions[name] += target[alias]
 
             # download positions from brokerage
             positions = self.broker.get_positions(account)
             for symbol in positions:
                 size = positions[symbol]['size']
-                if (symbol in allocations):
+                if (symbol in target_positions):
                     portfolio[symbol] = {'shares': size, 'last_price': self.broker.get_quote(symbol)}
 
             # add symbols that don't exist at brokerage
-            for symbol in allocations:
+            for symbol in target_positions:
+                print(symbol)
                 if symbol not in portfolio:
                     portfolio[symbol] = {'shares': 0, 'last_price': self.broker.get_quote(symbol)}
 
             print(portfolio)
 
-            # apply rules to determine target allocations
-            target = self.rp.apply_rules(rules, portfolio, allocations)
-
             # check if any positions in portfolio need rebalancings
-            rebalance_bands = self.rb.rebalance_bands(cash, portfolio, target)
+            rebalance_bands = self.rb.rebalance_bands(cash, portfolio, target_positions)
 
             if (rebalance_bands):
                 # generate orders to rebalance back to the updated target allocation
-                orders = self.rb.rebalance(cash, portfolio, target)
+                orders = self.rb.rebalance(cash, portfolio, target_positions)
 
                 # process sell orders
                 trades = []

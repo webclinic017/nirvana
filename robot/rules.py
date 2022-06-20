@@ -8,12 +8,11 @@ class RulesProcessor():
 
     def update_historical_data(self, rules):
         for symbol in rules:
-            for symbol in rules:
-                rules_symbol = rules[symbol]['sym']
-                if rules[symbol]['enable'] and rules_symbol not in self.historical_data:
-                    self.historical_data[rules_symbol] = self.broker.get_historical_data(rules_symbol, duration='200 D', bar_size = '1 day')
+            rules_symbol = rules[symbol]['sym']
+            if rules[symbol]['enable'] and rules_symbol not in self.historical_data:
+                self.historical_data[rules_symbol] = self.broker.get_historical_data(rules_symbol, duration='200 D', bar_size = '1 day')
 
-    def apply_rules(self, rules, portfolio, allocations):
+    def apply_rules(self, rules, allocations):
         self.update_historical_data(rules)
 
         target = {}
@@ -35,7 +34,8 @@ class RulesProcessor():
                 ppo = ta.momentum.PercentagePriceOscillator(df['close'], window_slow = 26, window_fast = 12, window_sign = 9, fillna = False)
                 ppo = ppo.ppo_hist().iloc[-1]
                 rsi = ta.momentum.RSIIndicator(df['close'], window = 14, fillna = False).rsi().iloc[-1]
-                print("{0:>7}: price={1:10.2f} ma={2:10.2f} ppo={3:6.2f} rsi={4:6.2f}".format(rules_symbol, price, ma, ppo, rsi))
+                print("{0:>20}: ({1:>7}) price={2:10.2f} ma({3:3})={4:10.2f} ppo={5:6.2f} rsi={6:6.2f}".format(
+                    symbol, rules_symbol, price, window, ma, ppo, rsi))
 
                 risk_off_signal = (
                     price < ma * lower
@@ -49,16 +49,18 @@ class RulesProcessor():
                     or rsi < 21
                 )
 
-                risk_on_position = False if portfolio[symbol]['shares'] == 0 else True
+                risk_on_position = True if rules[symbol]['risk_on'] else False
 
                 if risk_off_signal:
                     target[symbol] = 0
+                    rules[symbol]['risk_on'] = False
                 elif risk_on_signal or risk_on_position:
                     target[symbol] = allocations[symbol]
+                    rules[symbol]['risk_on'] = True
                 else:
                     target[symbol] = 0
-
             else:
                 target[symbol] = allocations[symbol]
+                rules[symbol]['risk_on'] = True
 
         return target
