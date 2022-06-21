@@ -1,5 +1,5 @@
-import pprint
 import ta
+from datetime import datetime, timedelta
 
 class RulesProcessor():
     def __init__(self, broker):
@@ -17,6 +17,20 @@ class RulesProcessor():
 
         target = {}
         for symbol in allocations:
+            try:
+                last_update = datetime.strptime(rules[symbol]['last_update'], "%Y-%m-%d %H:%M:%S")
+            except:
+                last_update = None
+
+            # Don't recalculate risk_on if done within last hour. We want to avoid
+            # whipsaws if trades fail and this runs again.
+            if last_update and last_update > datetime.now() - timedelta(minutes=60):
+                if rules[symbol]['risk_on']:
+                    target[symbol] = allocations[symbol]
+                else:
+                    target[symbol] = 0
+                continue
+
             if symbol in rules and rules[symbol]['enable']:
                 rules_symbol = rules[symbol]['sym']
                 ma_type, window = rules[symbol]['type'].split('_')
@@ -34,7 +48,7 @@ class RulesProcessor():
                 ppo = ta.momentum.PercentagePriceOscillator(df['close'], window_slow = 26, window_fast = 12, window_sign = 9, fillna = False)
                 ppo = ppo.ppo_hist().iloc[-1]
                 rsi = ta.momentum.RSIIndicator(df['close'], window = 14, fillna = False).rsi().iloc[-1]
-                print("{0:>20}: ({1:>7}) price={2:10.2f} ma({3:3})={4:10.2f} ppo={5:6.2f} rsi={6:6.2f}".format(
+                print("{0:>20}: ({1:>7}) price={2:10.2f} ma({3:>3})={4:10.2f} ppo={5:6.2f} rsi={6:6.2f}".format(
                     symbol, rules_symbol, price, window, ma, ppo, rsi))
 
                 risk_off_signal = (
@@ -59,8 +73,9 @@ class RulesProcessor():
                     rules[symbol]['risk_on'] = True
                 else:
                     target[symbol] = 0
+
+                rules[symbol]['last_update'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             else:
                 target[symbol] = allocations[symbol]
-                rules[symbol]['risk_on'] = True
 
         return target

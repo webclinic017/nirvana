@@ -82,7 +82,7 @@ class Robot:
             if account in self.completed_accounts:
                 continue
             print('Account: ' + account)
-            pprint.pprint(self.robot_accounts[account])
+            pprint.pprint(self.robot_accounts[account], sort_dicts=False)
 
             self.broker.cancel_all_orders()
 
@@ -102,6 +102,10 @@ class Robot:
             # apply rules to determine target allocations
             target = self.rp.apply_rules(rules, allocations)
 
+            f = open("config.json", "w")
+            json.dump(self.config, f, sort_keys=False, indent=4)
+            f.close()
+
             # aggregate target positions from target aliases
             target_positions = {}
             for alias in target:
@@ -120,11 +124,10 @@ class Robot:
 
             # add symbols that don't exist at brokerage
             for symbol in target_positions:
-                print(symbol)
                 if symbol not in portfolio:
                     portfolio[symbol] = {'shares': 0, 'last_price': self.broker.get_quote(symbol)}
 
-            print(portfolio)
+            pprint.pprint(portfolio)
 
             # check if any positions in portfolio need rebalancings
             rebalance_bands = self.rb.rebalance_bands(cash, portfolio, target_positions)
