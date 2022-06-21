@@ -45,7 +45,8 @@ class RulesProcessor():
                     ma = ta.trend.ema_indicator(df['close'], window=int(window), fillna=True).iloc[-1]
 
                 price = df['close'].iloc[-1]
-                ppo = ta.momentum.PercentagePriceOscillator(df['close'], window_slow = 26, window_fast = 12, window_sign = 9, fillna = False)
+                ppo = ta.momentum.PercentagePriceOscillator(df['close'], 
+                    window_slow = 26, window_fast = 12, window_sign = 9, fillna = False)
                 ppo = ppo.ppo_hist().iloc[-1]
                 rsi = ta.momentum.RSIIndicator(df['close'], window = 14, fillna = False).rsi().iloc[-1]
                 print("{0:>20}: ({1:>7}) price={2:10.2f} ma({3:>3})={4:10.2f} ppo={5:6.2f} rsi={6:6.2f}".format(

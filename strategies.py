@@ -45,9 +45,6 @@ class Nirvana(bt.Strategy):
             self.gains = []
             self.dates = []
 
-        # MACD is based on absolute values while PPO is based on percentages so use PPO here
-        self.use_ppo = True
-
         self.target = self.p.portfolio.copy()
         self.target_update = self.target.copy()
         self.ticker = {}
@@ -150,28 +147,28 @@ class Nirvana(bt.Strategy):
                     self.target_update[symbol] = 0
 
         # check if price crossed moving average threshold, if so, update target allocations and rebalance
-        rebalance_ma = False
         for symbol in self.ticker:
             if self.ticker[symbol]['ma_enable'] == True:
                 risk_off = (
                     self.ticker[symbol]['price'] < self.ticker[symbol]['ma'] * self.ticker[symbol]['ma_lower']
-                    and (not self.use_ppo or self.ticker[symbol]['ppo'] < 0.75) 
+                    and self.ticker[symbol]['ppo'] < 0.75
                     and self.ticker[symbol]['rsi'] > 22
                 )
                 risk_on = (
                     self.ticker[symbol]['price'] >= self.ticker[symbol]['ma'] * self.ticker[symbol]['ma_upper']
-                    or (self.use_ppo and self.ticker[symbol]['ppo'] > 1.0)
+                    or self.ticker[symbol]['ppo'] > 1.0
                     or self.ticker[symbol]['rsi'] < 21
                 )
 
-                if (risk_off and self.risk_on[symbol]):
+                if (risk_off):
                     self.target_update[symbol] = 0
                     self.risk_on[symbol] = False
-                    rebalance_ma = True
-                elif (risk_on and not self.risk_on[symbol]):
+                elif (risk_on or self.risk_on[symbol]):
                     self.target_update[symbol] = self.target[symbol]
                     self.risk_on[symbol] = True
-                    rebalance_ma = True
+                else:
+                    self.target_update[symbol] = 0
+                    self.risk_on[symbol] = False
 
         # update cash at broker
         cash = self.broker.getcash()
@@ -200,7 +197,7 @@ class Nirvana(bt.Strategy):
         else:
             rebalance = self.rb.rebalance_bands(cash, self.portfolio, target_positions)
 
-        if (rebalance or rebalance_ma or self.first_run):
+        if (rebalance or self.first_run):
             print(date + ": " + str(self.target_update))
 
             # generate trades to rebalance back to the updated target allocation
