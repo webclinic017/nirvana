@@ -77,8 +77,8 @@ class InteractiveBrokers():
                         endDateTime='',
                         durationStr=duration,
                         barSizeSetting=bar_size,
-                        whatToShow='MIDPOINT',
-                        useRTH=False,
+                        whatToShow='ADJUSTED_LAST',
+                        useRTH=True,
                         formatDate=1)
                 df = util.df(bars)
                 if df is not None:
