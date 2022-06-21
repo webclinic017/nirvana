@@ -113,6 +113,21 @@ def add_ta(df):
                 df.loc[date, 'upperband'] = df.loc[prev_date, 'upperband']
     return df
 
+def download_history(ticker):
+    attempts = 0
+    while (attempts < 3):
+        try:
+            history = yf.download(tickers=[ticker], threads=False, timeout=10).reset_index()
+            break
+        except Exception as e:
+            print(e)
+            attempts += 1
+            if attempts == 3:
+                print("Failed to download after 3 attempts")
+                exit(1)
+
+    return history
+
 def merge_history(df, ticker):
     index = df.index
     last_date = index[-1]
@@ -124,7 +139,7 @@ def merge_history(df, ticker):
         return
     start_date = start_date_dt.strftime(date_format)
     print('')
-    history = yf.download(tickers=[ticker], start=start_date).reset_index()
+    history = download_history(ticker)
     history['Date'] = pd.to_datetime(history['Date']).dt.date
     history = history[~(history['Date'] <= last_date_dt.date())]
     history = history.set_index("Date")
@@ -149,7 +164,7 @@ for ticker in tickers:
         merge_history(df, ticker)
     else:
         print('Downloading ' + ticker + '... ')
-        history = yf.download(tickers=[ticker]).reset_index()
+        history = download_history(ticker)
         history['Date'] = pd.to_datetime(history['Date']).dt.date
         history = history.set_index('Date')
         history = add_ta(history)
