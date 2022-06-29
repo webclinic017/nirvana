@@ -9,8 +9,8 @@
                 "GBTC": 50.0
             },
             "rules": {
-                "GBTC":    {"enable": false, "sym": "GBTC", "type": "SMA_50",  "upper": 1.01, "lower": 0.96},
-                "TSLA":    {"enable": true,  "sym": "SPY",  "type": "SMA_100", "upper": 1.01, "lower": 0.99}
+                "GBTC":    {"enable": false, "sym": "GBTC", "type": "SMA_50",  "upper": 1.01, "lower": 0.96, "risk_on": false},
+                "TSLA":    {"enable": true,  "sym": "SPY",  "type": "SMA_100", "upper": 1.01, "lower": 0.99, "risk_on": false}
             }
         }
     }
